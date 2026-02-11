@@ -16,7 +16,6 @@ CMakeUserPresets.json
 # Compiled files
 *.obj
 *.exe
-*.dll
 *.lib
 *.pdb
 *.ilk
