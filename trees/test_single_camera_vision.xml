@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+  <!--
+    Single-camera ArUco detection test.
+    Connect, configure, capture, detect ArUco, save annotated frame, cleanup.
+  -->
+
+  <BehaviorTree ID="TestSingleCameraVision">
+    <Sequence>
+
+      <!-- Connect and configure camera (matching working test_camera.cpp) -->
+      <ConnectCamera camera_name="FLIR-1E1001579921-01579921"/>
+      <SetPixelFormat camera_name="FLIR-1E1001579921-01579921" pixel_format="MONO8"/>
+      <SetBinning     camera_name="FLIR-1E1001579921-01579921" binning_x="4" binning_y="4"/>
+      <SetFrameRate   camera_name="FLIR-1E1001579921-01579921" frame_rate="60"/>
+      <StartAcquisition camera_name="FLIR-1E1001579921-01579921"/>
+
+      <!-- Wait for camera buffer to fill -->
+      <Delay delay_msec="1000">
+        <AlwaysSuccess/>
+      </Delay>
+
+      <!-- Capture frame into VisionManager as "left" -->
+      <CaptureStereoPair left_camera="FLIR-1E1001579921-01579921"
+                         right_camera="FLIR-1E1001579921-01579921"
+                         left_width="{left_width}" left_height="{left_height}"
+                         right_width="{right_width}" right_height="{right_height}"/>
+
+      <!-- Save raw captured frame -->
+      <SaveFrame frame_name="left"
+                 file_path="C:/Users/SatwikAgarwal/Documents/cynlr_software/behaviour_trees_exploration/captured_left.png"/>
+
+      <!-- Detect ArUco markers in the frame -->
+      <DetectAruco frame_name="left" dictionary="DICT_4X4_50"
+                   marker_count="{left_marker_count}"
+                   detected_ids="{left_ids}"/>
+
+      <!-- Cleanup -->
+      <ClearVision/>
+      <StopAcquisition camera_name="FLIR-1E1001579921-01579921"/>
+      <DisconnectCamera camera_name="FLIR-1E1001579921-01579921"/>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>

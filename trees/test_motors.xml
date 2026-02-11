@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+  <BehaviorTree ID="TestMotors">
+    <Sequence>
+
+      <!-- Connect and discover motors -->
+      <ConnectMotors motor_count="{motor_count}"/>
+
+      <!-- Start both motors -->
+      <StartMotor motor_index="0" target_position="0"/>
+      <StartMotor motor_index="1" target_position="0"/>
+
+      <!-- Read initial status -->
+      <GetMotorStatus motor_index="0"
+                      actual_position="{motor0_pos}" velocity="{motor0_vel}"/>
+      <GetMotorStatus motor_index="1"
+                      actual_position="{motor1_pos}" velocity="{motor1_vel}"/>
+
+      <!-- Move both motors simultaneously to position 5000 -->
+      <SetMotors motor_index_1="0" target_position_1="5000"
+                 motor_index_2="1" target_position_2="5000"/>
+
+      <!-- Wait for motors to settle -->
+      <Delay delay_msec="2000">
+        <AlwaysSuccess/>
+      </Delay>
+
+      <!-- Read positions after move -->
+      <GetMotorStatus motor_index="0"
+                      actual_position="{motor0_pos}" velocity="{motor0_vel}"/>
+      <GetMotorStatus motor_index="1"
+                      actual_position="{motor1_pos}" velocity="{motor1_vel}"/>
+
+      <!-- Move both motors back to 0 -->
+      <SetMotors motor_index_1="0" target_position_1="0"
+                 motor_index_2="1" target_position_2="0"/>
+
+      <Delay delay_msec="2000">
+        <AlwaysSuccess/>
+      </Delay>
+
+      <!-- Stop and disconnect -->
+      <StopMotor motor_index="0"/>
+      <StopMotor motor_index="1"/>
+      <DisconnectMotors/>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>

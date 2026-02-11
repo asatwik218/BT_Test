@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+  <BehaviorTree ID="BinPickAndPlace">
+    <Sequence>
+
+      <!-- ================================================================ -->
+      <!-- Phase 1: Hardware Setup                                          -->
+      <!-- ================================================================ -->
+
+      <!-- AMR -->
+      <ConnectAMR ip="AMR_IP_PLACEHOLDER" amr_type="SEER"/>
+
+      <!-- Two Flexiv robots -->
+      <ConnectRobot serial="LEFT_ROBOT_SERIAL"/>
+      <ConnectRobot serial="RIGHT_ROBOT_SERIAL"/>
+
+      <!-- Two grippers -->
+      <ConnectGripper port="LEFT_GRIPPER_PORT" gripper_type="DHAG"/>
+      <ConnectGripper port="RIGHT_GRIPPER_PORT" gripper_type="DHAG"/>
+
+      <!-- Stereo cameras -->
+      <ConnectCamera name="left_cam" camera_id="LEFT_CAM_ID"/>
+      <ConnectCamera name="right_cam" camera_id="RIGHT_CAM_ID"/>
+      <StartAcquisition camera_name="left_cam"/>
+      <StartAcquisition camera_name="right_cam"/>
+
+      <!-- Convergence motors -->
+      <ConnectMotors motor_count="{motor_count}"/>
+      <StartMotor motor_index="0" target_position="0"/>
+      <StartMotor motor_index="1" target_position="0"/>
+
+      <!-- ================================================================ -->
+      <!-- Phase 2: AMR navigates to pick station                           -->
+      <!-- ================================================================ -->
+
+      <GoToAMR ip="AMR_IP_PLACEHOLDER" dest_id="pick_station"/>
+
+      <!-- Poll until navigation completes (task_status == 4) -->
+      <RetryUntilSuccessful num_attempts="600">
+        <Sequence>
+          <Delay delay_msec="500">
+            <AlwaysSuccess/>
+          </Delay>
+          <GetAMRNavigationStatus ip="AMR_IP_PLACEHOLDER"
+                                  task_status="{nav_status}"/>
+          <ScriptCondition code="nav_status == 4"/>
+        </Sequence>
+      </RetryUntilSuccessful>
+
+      <!-- ================================================================ -->
+      <!-- Phase 3: Iterative convergence loop                              -->
+      <!--   Detect ArUco -> compute pixel offset -> move motors -> repeat  -->
+      <!--   until centered in both cameras                                 -->
+      <!-- ================================================================ -->
+
+      <RetryUntilSuccessful num_attempts="30">
+        <Sequence>
+
+          <!-- Capture stereo frames -->
+          <CaptureStereoPair left_camera="left_cam" right_camera="right_cam"
+                             left_width="{left_width}" left_height="{left_height}"
+                             right_width="{right_width}" right_height="{right_height}"/>
+
+          <!-- Detect ArUco in both frames -->
+          <DetectAruco frame_name="left" dictionary="DICT_4X4_50"/>
+          <DetectAruco frame_name="right" dictionary="DICT_4X4_50"/>
+
+          <!-- Compute pixel offsets from image center -->
+          <GetArucoCenterOffset frame_name="left" marker_id="0"
+                                image_width="{left_width}" image_height="{left_height}"
+                                x_offset="{left_x_offset}" y_offset="{left_y_offset}"/>
+
+          <GetArucoCenterOffset frame_name="right" marker_id="0"
+                                image_width="{right_width}" image_height="{right_height}"
+                                x_offset="{right_x_offset}" y_offset="{right_y_offset}"/>
+
+          <!-- Read current motor positions -->
+          <GetMotorStatus motor_index="0" actual_position="{left_motor_pos}"/>
+          <GetMotorStatus motor_index="1" actual_position="{right_motor_pos}"/>
+
+          <!-- Check convergence or move motors -->
+          <Fallback>
+            <!-- If converged, Fallback succeeds -> Sequence succeeds -> loop stops -->
+            <CheckConverged left_x_offset="{left_x_offset}"
+                            right_x_offset="{right_x_offset}"
+                            tolerance="5.0"/>
+
+            <!-- Not converged: compute new motor targets, move, force retry -->
+            <Sequence>
+              <PixelOffsetsToMotorIncrements
+                  left_x_offset="{left_x_offset}"
+                  right_x_offset="{right_x_offset}"
+                  left_motor_increment="{left_motor_pos}"
+                  right_motor_increment="{right_motor_pos}"
+                  left_target_increment="{left_target_incr}"
+                  right_target_increment="{right_target_incr}"/>
+
+              <SetMotors motor_index_1="0"
+                         target_position_1="{left_target_incr}"
+                         motor_index_2="1"
+                         target_position_2="{right_target_incr}"/>
+
+              <!-- Settle time for motors -->
+            
+              <Delay delay_msec="200">
+                <AlwaysSuccess/>
+              </Delay>
+              <!-- TODO: make a check if motor has reached target after the delay with tolerance-->
+              <!-- Force FAILURE so RetryUntilSuccessful retries -->
+              <AlwaysFailure/>
+            </Sequence>
+          </Fallback>
+
+        </Sequence>
+      </RetryUntilSuccessful>
+
+      <!-- ================================================================ -->
+      <!-- Phase 4: Compute 3D convergence point and pick poses             -->
+      <!-- ================================================================ -->
+
+      <!-- Read final motor positions -->
+      <GetMotorStatus motor_index="0" actual_position="{left_motor_pos}"/>
+      <GetMotorStatus motor_index="1" actual_position="{right_motor_pos}"/>
+
+      <!-- Motor increments -> degree angles -->
+      <IncrementsToDegreesMotors
+          left_motor_increment="{left_motor_pos}"
+          right_motor_increment="{right_motor_pos}"
+          left_parallel_angle="LEFT_PARALLEL_ANGLE"
+          right_parallel_angle="RIGHT_PARALLEL_ANGLE"
+          left_degree_angle="{left_deg}"
+          right_degree_angle="{right_deg}"/>
+
+      <!-- Triangulation -> depth + pan angle -->
+      <ConvergenceTriangulation
+          left_degree_angle="{left_deg}"
+          right_degree_angle="{right_deg}"
+          depth="{depth}"
+          pan_angle_deg="{pan_angle}"/>
+
+      <!-- Y pixel offset -> vertical angle -->
+      <YPixelOffsetToAngle
+          vfov="VFOV_PLACEHOLDER"
+          y_pixel_offset="{left_y_offset}"
+          y_angle_deg="{y_angle}"/>
+
+      <!-- Chain transforms -> 3D convergence point -->
+      <ComputeConvergencePoint
+          robot_pose="ROBOT_POSE_PLACEHOLDER"
+          depth="{depth}"
+          pan_angle_deg="{pan_angle}"
+          y_angle_deg="{y_angle}"
+          a6_rotation_angle="A6_ANGLE_PLACEHOLDER"
+          convergence_x="{conv_x}"
+          convergence_y="{conv_y}"
+          convergence_z="{conv_z}"/>
+
+      <!-- Compute left/right pick positions with offsets -->
+      <ComputePickPoses
+          convergence_x="{conv_x}"
+          convergence_y="{conv_y}"
+          convergence_z="{conv_z}"
+          left_offset="0;-50;0"
+          right_offset="0;50;0"
+          lift_height="50.0"
+          left_pick_position="{left_pick_pos}"
+          right_pick_position="{right_pick_pos}"
+          lift_left_position="{lift_left_pos}"
+          lift_right_position="{lift_right_pos}"/>
+
+      <!-- ================================================================ -->
+      <!-- Phase 5: Both arms move to pick position (parallel)              -->
+      <!-- ================================================================ -->
+
+      <Parallel success_count="2" failure_count="1">
+        <!-- Left arm -->
+        <Sequence>
+          <MoveRobot serial="LEFT_ROBOT_SERIAL"
+                     position_mm="{left_pick_pos}"
+                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
+          <RetryUntilSuccessful num_attempts="100">
+            <Sequence>
+              <Delay delay_msec="100">
+                <AlwaysSuccess/>
+              </Delay>
+              <CheckTargetReached serial="LEFT_ROBOT_SERIAL"
+                                  target_position_mm="{left_pick_pos}"
+                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                                  position_tolerance_mm="2.0"/>
+            </Sequence>
+          </RetryUntilSuccessful>
+        </Sequence>
+
+        <!-- Right arm -->
+        <Sequence>
+          <MoveRobot serial="RIGHT_ROBOT_SERIAL"
+                     position_mm="{right_pick_pos}"
+                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
+          <RetryUntilSuccessful num_attempts="100">
+            <Sequence>
+              <Delay delay_msec="100">
+                <AlwaysSuccess/>
+              </Delay>
+              <CheckTargetReached serial="RIGHT_ROBOT_SERIAL"
+                                  target_position_mm="{right_pick_pos}"
+                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                                  position_tolerance_mm="2.0"/>
+            </Sequence>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Parallel>
+
+      <!-- ================================================================ -->
+      <!-- Phase 6: Close both grippers (parallel) + settle                 -->
+      <!-- ================================================================ -->
+
+      <Parallel success_count="2" failure_count="1">
+        <CloseGripper port="LEFT_GRIPPER_PORT"/>
+        <CloseGripper port="RIGHT_GRIPPER_PORT"/>
+      </Parallel>
+
+      <Delay delay_msec="1000">
+        <AlwaysSuccess/>
+      </Delay>
+
+      <!-- ================================================================ -->
+      <!-- Phase 7: Lift both arms (parallel)                               -->
+      <!-- ================================================================ -->
+
+      <Parallel success_count="2" failure_count="1">
+        <!-- Left arm lift -->
+        <Sequence>
+          <MoveRobot serial="LEFT_ROBOT_SERIAL"
+                     position_mm="{lift_left_pos}"
+                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
+          <RetryUntilSuccessful num_attempts="100">
+            <Sequence>
+              <Delay delay_msec="100">
+                <AlwaysSuccess/>
+              </Delay>
+              <CheckTargetReached serial="LEFT_ROBOT_SERIAL"
+                                  target_position_mm="{lift_left_pos}"
+                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                                  position_tolerance_mm="2.0"/>
+            </Sequence>
+          </RetryUntilSuccessful>
+        </Sequence>
+
+        <!-- Right arm lift -->
+        <Sequence>
+          <MoveRobot serial="RIGHT_ROBOT_SERIAL"
+                     position_mm="{lift_right_pos}"
+                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
+          <RetryUntilSuccessful num_attempts="100">
+            <Sequence>
+              <Delay delay_msec="100">
+                <AlwaysSuccess/>
+              </Delay>
+              <CheckTargetReached serial="RIGHT_ROBOT_SERIAL"
+                                  target_position_mm="{lift_right_pos}"
+                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                                  position_tolerance_mm="2.0"/>
+            </Sequence>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Parallel>
+
+      <!-- ================================================================ -->
+      <!-- Phase 8: AMR moves to drop station                               -->
+      <!-- ================================================================ -->
+
+      <GoToAMR ip="AMR_IP_PLACEHOLDER" dest_id="drop_station"/>
+
+      <RetryUntilSuccessful num_attempts="600">
+        <Sequence>
+          <Delay delay_msec="500">
+            <AlwaysSuccess/>
+          </Delay>
+          <GetAMRNavigationStatus ip="AMR_IP_PLACEHOLDER"
+                                  task_status="{nav_status}"/>
+          <ScriptCondition code="nav_status == 4"/>
+        </Sequence>
+      </RetryUntilSuccessful>
+
+      <!-- ================================================================ -->
+      <!-- Phase 9: Drop the bin (open both grippers)                       -->
+      <!-- ================================================================ -->
+
+      <Parallel success_count="2" failure_count="1">
+        <OpenGripper port="LEFT_GRIPPER_PORT"/>
+        <OpenGripper port="RIGHT_GRIPPER_PORT"/>
+      </Parallel>
+
+      <!-- ================================================================ -->
+      <!-- Phase 10: Cleanup                                                -->
+      <!-- ================================================================ -->
+
+      <StopMotor motor_index="0"/>
+      <StopMotor motor_index="1"/>
+      <DisconnectMotors/>
+
+      <StopAcquisition camera_name="left_cam"/>
+      <StopAcquisition camera_name="right_cam"/>
+      <DisconnectCamera name="left_cam"/>
+      <DisconnectCamera name="right_cam"/>
+
+      <DisconnectGripper port="LEFT_GRIPPER_PORT"/>
+      <DisconnectGripper port="RIGHT_GRIPPER_PORT"/>
+
+      <StopRobot serial="LEFT_ROBOT_SERIAL"/>
+      <StopRobot serial="RIGHT_ROBOT_SERIAL"/>
+      <DisconnectRobot serial="LEFT_ROBOT_SERIAL"/>
+      <DisconnectRobot serial="RIGHT_ROBOT_SERIAL"/>
+
+      <ClearVision/>
+      <DisconnectAMR ip="AMR_IP_PLACEHOLDER"/>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>

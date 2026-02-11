@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+  <BehaviorTree ID="TestFlexiv">
+    <Sequence>
+
+      <!-- Connect both robots -->
+      <ConnectRobot serial="LEFT_ROBOT_SERIAL"/>
+      <ConnectRobot serial="RIGHT_ROBOT_SERIAL"/>
+
+      <!-- Move both robots in parallel -->
+      <Parallel success_count="2" failure_count="1">
+
+        <!-- Left arm: move and wait -->
+        <Sequence>
+          <MoveRobot serial="LEFT_ROBOT_SERIAL"
+                     position_mm="400;0;300"
+                     orientation_deg="0;90;0"/>
+          <RetryUntilSuccessful num_attempts="100">
+            <Sequence>
+              <Delay delay_msec="100">
+                <AlwaysSuccess/>
+              </Delay>
+              <CheckTargetReached serial="LEFT_ROBOT_SERIAL"
+                                  target_position_mm="400;0;300"
+                                  target_orientation_deg="0;90;0"
+                                  position_tolerance_mm="2.0"/>
+            </Sequence>
+          </RetryUntilSuccessful>
+        </Sequence>
+
+        <!-- Right arm: move and wait -->
+        <Sequence>
+          <MoveRobot serial="RIGHT_ROBOT_SERIAL"
+                     position_mm="-400;0;300"
+                     orientation_deg="0;90;0"/>
+          <RetryUntilSuccessful num_attempts="100">
+            <Sequence>
+              <Delay delay_msec="100">
+                <AlwaysSuccess/>
+              </Delay>
+              <CheckTargetReached serial="RIGHT_ROBOT_SERIAL"
+                                  target_position_mm="-400;0;300"
+                                  target_orientation_deg="0;90;0"
+                                  position_tolerance_mm="2.0"/>
+            </Sequence>
+          </RetryUntilSuccessful>
+        </Sequence>
+
+      </Parallel>
+
+      <!-- Disconnect both -->
+      <StopRobot serial="LEFT_ROBOT_SERIAL"/>
+      <StopRobot serial="RIGHT_ROBOT_SERIAL"/>
+      <DisconnectRobot serial="LEFT_ROBOT_SERIAL"/>
+      <DisconnectRobot serial="RIGHT_ROBOT_SERIAL"/>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>

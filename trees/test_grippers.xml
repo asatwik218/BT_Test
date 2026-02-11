@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+  <BehaviorTree ID="TestGrippers">
+    <Sequence>
+
+      <!-- Connect both grippers -->
+      <ConnectGripper port="LEFT_GRIPPER_PORT" gripper_type="DHAG"/>
+      <ConnectGripper port="RIGHT_GRIPPER_PORT" gripper_type="DHAG"/>
+
+      <!-- Open both -->
+      <Parallel success_count="2" failure_count="1">
+        <OpenGripper port="LEFT_GRIPPER_PORT"/>
+        <OpenGripper port="RIGHT_GRIPPER_PORT"/>
+      </Parallel>
+
+      <Delay delay_msec="1000">
+        <AlwaysSuccess/>
+      </Delay>
+
+      <!-- Close both -->
+      <Parallel success_count="2" failure_count="1">
+        <CloseGripper port="LEFT_GRIPPER_PORT"/>
+        <CloseGripper port="RIGHT_GRIPPER_PORT"/>
+      </Parallel>
+
+      <Delay delay_msec="1000">
+        <AlwaysSuccess/>
+      </Delay>
+
+      <!-- Open both again -->
+      <Parallel success_count="2" failure_count="1">
+        <OpenGripper port="LEFT_GRIPPER_PORT"/>
+        <OpenGripper port="RIGHT_GRIPPER_PORT"/>
+      </Parallel>
+
+      <!-- Disconnect -->
+      <DisconnectGripper port="LEFT_GRIPPER_PORT"/>
+      <DisconnectGripper port="RIGHT_GRIPPER_PORT"/>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>
