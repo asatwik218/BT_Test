@@ -140,7 +140,7 @@
 
       <!-- Compute vertical angle from Y pixel offset (low res: 512/2 = 256 half height) -->
       <YPixelOffsetToAngle
-          vfov="15.0"
+          vfov="11.65"
           y_pixel_offset="{left_y_offset}"
           image_half_height="256"
           y_angle_deg="{y_angle}"/>
