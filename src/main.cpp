@@ -23,7 +23,7 @@ int main() {
         vision_bt::registerVisionNodes(factory);
 
         // Load and run the behavior tree
-        auto tree = factory.createTreeFromFile("C:/Users/SatwikAgarwal/Documents/cynlr_software/behaviour_trees_exploration/trees/test_single_camera_vision.xml");
+        auto tree = factory.createTreeFromFile("C:/Users/SatwikAgarwal/Documents/cynlr_software/behaviour_trees_exploration/trees/test_motors.xml");
         tree.tickWhileRunning();
         return 0;
         
