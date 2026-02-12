@@ -65,7 +65,7 @@ public:
         return inst;
     }
 
-    int connect(const std::string& dll_path = "C:/Users/SatwikAgarwal/Documents/cynlr_software/behaviour_trees_exploration/CyMotorControlInterface.dll") {
+    int connect(const std::string& dll_path = "CyMotorControlInterface.dll") {
         std::lock_guard<std::mutex> lock(mutex_);
         if (interface_) {
             std::cout << "[MotorManager] Already connected" << std::endl;
@@ -235,7 +235,7 @@ public:
 
     static BT::PortsList providedPorts() {
         return {
-            BT::InputPort<std::string>("dll_path", "C:/Users/SatwikAgarwal/Documents/cynlr_software/behaviour_trees_exploration/CyMotorControlInterface.dll", "Path to motor DLL"),
+            BT::InputPort<std::string>("dll_path", "CyMotorControlInterface.dll", "Path to motor DLL"),
             BT::OutputPort<int>("motor_count", "Number of motors discovered")
         };
     }

@@ -155,7 +155,7 @@ public:
         return inst;
     }
 
-    bool load(const std::string& dll_path = "C:/Users/SatwikAgarwal/Documents/cynlr_software/behaviour_trees_exploration/CyAMR.dll") {
+    bool load(const std::string& dll_path = "CyAMR.dll") {
         std::lock_guard<std::mutex> lock(mutex_);
         if (hDll_) return true;
 
@@ -277,7 +277,7 @@ public:
     static BT::PortsList providedPorts() {
         return { BT::InputPort<std::string>("ip", "AMR IP address"),
                  BT::InputPort<std::string>("amr_type", "SEER", "AMR type"),
-                 BT::InputPort<std::string>("dll_path", "C:/Users/SatwikAgarwal/Documents/cynlr_software/behaviour_trees_exploration/CyAMR.dll", "Path to AMR DLL") };
+                 BT::InputPort<std::string>("dll_path", "CyAMR.dll", "Path to AMR DLL") };
     }
     BT::NodeStatus tick() override;
 };
