@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+  <!--
+    Full stereo convergence test:
+    1. Connect + configure both cameras and motors
+    2. Convergence loop: capture, detect ArUco, check offset, adjust motors
+    3. Once converged: triangulate depth + compute 3D convergence point
+    4. Cleanup
+  -->
+
+  <BehaviorTree ID="TestConvergence">
+    <Sequence>
+
+      <!-- ========== SETUP: Cameras ========== -->
+      <ConnectCamera camera_name="FLIR-1E100157992A-0157992A"/>
+      <SetPixelFormat camera_name="FLIR-1E100157992A-0157992A" pixel_format="MONO8"/>
+      <SetBinning     camera_name="FLIR-1E100157992A-0157992A" binning_x="4" binning_y="4"/>
+      <SetFrameRate   camera_name="FLIR-1E100157992A-0157992A" frame_rate="60"/>
+
+      <ConnectCamera camera_name="FLIR-1E100157E98F-0157E98F"/>
+      <SetPixelFormat camera_name="FLIR-1E100157E98F-0157E98F" pixel_format="MONO8"/>
+      <SetBinning     camera_name="FLIR-1E100157E98F-0157E98F" binning_x="4" binning_y="4"/>
+      <SetFrameRate   camera_name="FLIR-1E100157E98F-0157E98F" frame_rate="60"/>
+
+      <StartAcquisition camera_name="FLIR-1E100157992A-0157992A"/>
+      <StartAcquisition camera_name="FLIR-1E100157E98F-0157E98F"/>
+
+      <!-- ========== SETUP: Motors ========== -->
+      <ConnectMotors motor_count="{motor_count}"/>
+      <StartMotor motor_index="0" target_position="0"/>
+      <StartMotor motor_index="1" target_position="0"/>
+
+      <!-- Wait for cameras and motors to settle -->
+      <Delay delay_msec="1500">
+        <AlwaysSuccess/>
+      </Delay>
+
+      <!-- ========== CONVERGENCE LOOP ========== -->
+      <!--
+        RetryUntilSuccessful retries child on FAILURE.
+        Inner logic:
+          - Capture stereo pair + detect ArUco + get offsets
+          - Fallback:
+            - CheckConverged → SUCCESS means converged → loop exits
+            - Motor adjustment → ForceFailure → Retry tries again
+      -->
+      <RetryUntilSuccessful num_attempts="20">
+        <Sequence>
+          <!-- Capture stereo pair -->
+          <CaptureStereoPair left_camera="FLIR-1E100157992A-0157992A"
+                             right_camera="FLIR-1E100157E98F-0157E98F"
+                             left_width="{left_width}" left_height="{left_height}"
+                             right_width="{right_width}" right_height="{right_height}"/>
+
+          <!-- Detect ArUco in both frames -->
+          <DetectAruco frame_name="left" dictionary="DICT_4X4_50"
+                       marker_count="{left_marker_count}" detected_ids="{left_ids}"/>
+          <DetectAruco frame_name="right" dictionary="DICT_4X4_50"
+                       marker_count="{right_marker_count}" detected_ids="{right_ids}"/>
+
+          <!-- Get pixel offsets from center for marker ID 0 -->
+          <GetArucoCenterOffset frame_name="left" marker_id="0"
+                                image_width="{left_width}" image_height="{left_height}"
+                                x_offset="{left_x_offset}" y_offset="{left_y_offset}"/>
+          <GetArucoCenterOffset frame_name="right" marker_id="0"
+                                image_width="{right_width}" image_height="{right_height}"
+                                x_offset="{right_x_offset}" y_offset="{right_y_offset}"/>
+
+          <!-- Check convergence or adjust motors -->
+          <Fallback>
+            <!-- If converged → SUCCESS → exits loop -->
+            <CheckConverged left_x_offset="{left_x_offset}"
+                            right_x_offset="{right_x_offset}"
+                            tolerance="5.0"/>
+
+            <!-- Not converged → adjust motors then force retry -->
+            <Sequence>
+              <!-- Read current motor positions -->
+              <GetMotorStatus motor_index="0"
+                              actual_position="{left_motor_incr}" velocity="{v0}"/>
+              <GetMotorStatus motor_index="1"
+                              actual_position="{right_motor_incr}" velocity="{v1}"/>
+
+              <!-- Compute new motor targets from pixel offsets -->
+              <PixelOffsetsToMotorIncrements
+                  left_x_offset="{left_x_offset}"
+                  right_x_offset="{right_x_offset}"
+                  left_motor_increment="{left_motor_incr}"
+                  right_motor_increment="{right_motor_incr}"
+                  left_target_increment="{left_target_incr}"
+                  right_target_increment="{right_target_incr}"/>
+
+              <!-- Move motors to new targets -->
+              <SetMotors motor_index_1="0" target_position_1="{left_target_incr}"
+                         motor_index_2="1" target_position_2="{right_target_incr}"/>
+
+              <!-- Wait for motors to settle -->
+              <Delay delay_msec="500">
+                <AlwaysSuccess/>
+              </Delay>
+
+              <!-- Clear vision data for next iteration -->
+              <ClearVision/>
+
+              <!-- Force FAILURE so RetryUntilSuccessful retries -->
+              <ForceFailure>
+                <AlwaysSuccess/>
+              </ForceFailure>
+            </Sequence>
+          </Fallback>
+        </Sequence>
+      </RetryUntilSuccessful>
+
+      <!-- ========== POST-CONVERGENCE: Compute pose ========== -->
+
+      <!-- Read final motor positions -->
+      <GetMotorStatus motor_index="0"
+                      actual_position="{left_motor_incr}" velocity="{v0}"/>
+      <GetMotorStatus motor_index="1"
+                      actual_position="{right_motor_incr}" velocity="{v1}"/>
+
+      <!-- Convert motor increments to degrees -->
+      <IncrementsToDegreesMotors
+          left_motor_increment="{left_motor_incr}"
+          right_motor_increment="{right_motor_incr}"
+          left_parallel_angle="5783"
+          right_parallel_angle="-5806"
+          left_degree_angle="{left_deg}"
+          right_degree_angle="{right_deg}"/>
+
+      <!-- Triangulate depth and pan angle -->
+      <ConvergenceTriangulation
+          left_degree_angle="{left_deg}"
+          right_degree_angle="{right_deg}"
+          baseline="90.0"
+          depth="{depth}"
+          pan_angle_deg="{pan_angle}"
+          d1="{d1}" d2="{d2}"/>
+
+      <!-- Compute vertical angle from Y pixel offset (low res: 512/2 = 256 half height) -->
+      <YPixelOffsetToAngle
+          vfov="15.0"
+          y_pixel_offset="{left_y_offset}"
+          image_half_height="256"
+          y_angle_deg="{y_angle}"/>
+
+      <!-- Compute 3D convergence point -->
+      <!-- TODO: Set robot_pose and a6_rotation_angle to actual values -->
+      <ComputeConvergencePoint
+          robot_pose="0;0;0;0;0;0"
+          depth="{depth}"
+          pan_angle_deg="{pan_angle}"
+          y_angle_deg="{y_angle}"
+          a6_rotation_angle="0"
+          convergence_x="{conv_x}"
+          convergence_y="{conv_y}"
+          convergence_z="{conv_z}"/>
+
+      <!-- Save frames for debugging -->
+      <SaveFrame frame_name="left" file_path="converged_left.png"/>
+      <SaveFrame frame_name="right" file_path="converged_right.png"/>
+
+      <!-- ========== CLEANUP ========== -->
+      <ClearVision/>
+      <StopMotor motor_index="0"/>
+      <StopMotor motor_index="1"/>
+      <DisconnectMotors/>
+      <StopAcquisition camera_name="FLIR-1E100157992A-0157992A"/>
+      <StopAcquisition camera_name="FLIR-1E100157E98F-0157E98F"/>
+      <DisconnectCamera camera_name="FLIR-1E100157992A-0157992A"/>
+      <DisconnectCamera camera_name="FLIR-1E100157E98F-0157E98F"/>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>
