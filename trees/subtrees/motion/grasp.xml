@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: Grasp
+         Full grasp pipeline: DetectAndConverge → Compute3D → ComputePick
+         → Move to pick → Close gripper
+         ================================================================ -->
+    <BehaviorTree ID="Grasp">
+        <Sequence>
+            <!-- Step 1: Detect and converge on target -->
+            <SubTree ID="DetectAndConverge"
+                     camera_left_name="{camera_left_name}"
+                     camera_right_name="{camera_right_name}"
+                     left_motor_index="{left_motor_index}"
+                     right_motor_index="{right_motor_index}"
+                     marker_id="{marker_id}"
+                     aruco_dictionary="{aruco_dictionary}"
+                     convergence_tolerance="{convergence_tolerance}"
+                     max_convergence_attempts="{max_convergence_attempts}"
+                     left_x_offset="{left_x_offset}"
+                     left_y_offset="{left_y_offset}"
+                     right_x_offset="{right_x_offset}"
+                     right_y_offset="{right_y_offset}"
+                     left_width="{left_width}" left_height="{left_height}"
+                     right_width="{right_width}" right_height="{right_height}"
+                     left_motor_increment="{left_motor_increment}"
+                     right_motor_increment="{right_motor_increment}"
+                     left_target_increment="{left_target_increment}"
+                     right_target_increment="{right_target_increment}"/>
+
+            <!-- Step 2: Compute 3D point -->
+            <SubTree ID="Compute3DPoint"
+                     left_motor_index="{left_motor_index}"
+                     right_motor_index="{right_motor_index}"
+                     left_parallel_angle="{left_parallel_angle}"
+                     right_parallel_angle="{right_parallel_angle}"
+                     baseline="{baseline}"
+                     vfov="{vfov}"
+                     robot_pose="{robot_pose}"
+                     a6_rotation_angle="{a6_rotation_angle}"
+                     left_y_offset="{left_y_offset}"
+                     image_half_height="{image_half_height}"
+                     left_motor_increment="{left_motor_increment}"
+                     right_motor_increment="{right_motor_increment}"
+                     convergence_x="{convergence_x}"
+                     convergence_y="{convergence_y}"
+                     convergence_z="{convergence_z}"/>
+
+            <!-- Step 3: Compute pick poses for the arm -->
+            <ComputePickPoses convergence_x="{convergence_x}"
+                              convergence_y="{convergence_y}"
+                              convergence_z="{convergence_z}"
+                              left_offset="{left_pick_offset}"
+                              right_offset="{right_pick_offset}"
+                              lift_height="{lift_height}"
+                              left_pick_position="{left_pick_position}"
+                              right_pick_position="{right_pick_position}"
+                              lift_left_position="{lift_left_position}"
+                              lift_right_position="{lift_right_position}"/>
+
+            <!-- Step 4: Move arm to pick position and close gripper -->
+            <MoveRobotAsync serial="{grasp_robot_serial}"
+                            position_mm="{grasp_pick_position}"
+                            orientation_deg="{grasp_orientation}"/>
+            <CloseGripperAsync port="{grasp_gripper_port}"/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

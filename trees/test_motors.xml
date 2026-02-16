@@ -17,14 +17,9 @@
       <GetMotorStatus motor_index="1"
                       actual_position="{motor1_pos}" velocity="{motor1_vel}"/>
 
-      <!-- Move both motors simultaneously to position 5000 -->
-      <SetMotors motor_index_1="0" target_position_1="5000"
-                 motor_index_2="1" target_position_2="5000"/>
-
-      <!-- Wait for motors to settle -->
-      <Delay delay_msec="2000">
-        <AlwaysSuccess/>
-      </Delay>
+      <!-- Move both motors simultaneously to position 5000 (waits for completion) -->
+      <SetMotorsAsync motor_index_1="0" target_position_1="5000"
+                      motor_index_2="1" target_position_2="5000"/>
 
       <!-- Read positions after move -->
       <GetMotorStatus motor_index="0"
@@ -32,13 +27,9 @@
       <GetMotorStatus motor_index="1"
                       actual_position="{motor1_pos}" velocity="{motor1_vel}"/>
 
-      <!-- Move both motors back to 0 -->
-      <SetMotors motor_index_1="0" target_position_1="0"
-                 motor_index_2="1" target_position_2="0"/>
-
-      <Delay delay_msec="2000">
-        <AlwaysSuccess/>
-      </Delay>
+      <!-- Move both motors back to 0 (waits for completion) -->
+      <SetMotorsAsync motor_index_1="0" target_position_1="0"
+                      motor_index_2="1" target_position_2="0"/>
 
       <!-- Stop and disconnect -->
       <StopMotor motor_index="0"/>

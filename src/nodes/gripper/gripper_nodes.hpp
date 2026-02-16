@@ -164,67 +164,63 @@ public:
 };
 
 // ============================================================================
-// Node 3: OpenGripper
+// OpenGripperAsync — sends open in onStart, polls gripper state in onRunning
 // ============================================================================
-/**
- * @brief Opens the gripper (moves to minimum position)
- *
- * Ports:
- *   - port [input]: Serial port
- *
- * Returns SUCCESS if command sent, FAILURE on error
- */
-class OpenGripper : public BT::SyncActionNode {
+class OpenGripperAsync : public BT::StatefulActionNode {
 public:
-    OpenGripper(const std::string& name, const BT::NodeConfig& config)
-        : BT::SyncActionNode(name, config) {}
+    OpenGripperAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
 
     static BT::PortsList providedPorts() {
         return {
-            BT::InputPort<std::string>("port", "Serial port")
+            BT::InputPort<std::string>("port", "Serial port (e.g., COM3)"),
+            BT::InputPort<int>("timeout_ms", 5000, "Timeout in milliseconds")
         };
     }
 
-    BT::NodeStatus tick() override;
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    std::string port_;
+    int timeout_ms_ = 5000;
+    int elapsed_ms_ = 0;
 };
 
 // ============================================================================
-// Node 4: CloseGripper
+// CloseGripperAsync — sends close in onStart, polls gripper state in onRunning
 // ============================================================================
-/**
- * @brief Closes the gripper (moves to maximum position with maximum force)
- *
- * Ports:
- *   - port [input]: Serial port
- *
- * Returns SUCCESS if command sent, FAILURE on error
- */
-class CloseGripper : public BT::SyncActionNode {
+class CloseGripperAsync : public BT::StatefulActionNode {
 public:
-    CloseGripper(const std::string& name, const BT::NodeConfig& config)
-        : BT::SyncActionNode(name, config) {}
+    CloseGripperAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
 
     static BT::PortsList providedPorts() {
         return {
-            BT::InputPort<std::string>("port", "Serial port")
+            BT::InputPort<std::string>("port", "Serial port (e.g., COM3)"),
+            BT::InputPort<int>("timeout_ms", 5000, "Timeout in milliseconds")
         };
     }
 
-    BT::NodeStatus tick() override;
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    std::string port_;
+    int timeout_ms_ = 5000;
+    int elapsed_ms_ = 0;
 };
 
 // ============================================================================
 // Registration helper
 // ============================================================================
-/**
- * @brief Register all Gripper nodes with a BehaviorTreeFactory
- * @param factory The factory to register nodes with
- */
 inline void registerGripperNodes(BT::BehaviorTreeFactory& factory) {
     factory.registerNodeType<ConnectGripper>("ConnectGripper");
     factory.registerNodeType<DisconnectGripper>("DisconnectGripper");
-    factory.registerNodeType<OpenGripper>("OpenGripper");
-    factory.registerNodeType<CloseGripper>("CloseGripper");
+    factory.registerNodeType<OpenGripperAsync>("OpenGripperAsync");
+    factory.registerNodeType<CloseGripperAsync>("CloseGripperAsync");
 }
 
 } // namespace gripper_bt

@@ -90,75 +90,139 @@ BT::NodeStatus DisconnectGripper::tick() {
 }
 
 // ============================================================================
-// OpenGripper Implementation
+// OpenGripperAsync Implementation
 // ============================================================================
 
-BT::NodeStatus OpenGripper::tick() {
+BT::NodeStatus OpenGripperAsync::onStart() {
     auto port = getInput<std::string>("port");
     if (!port) {
-        std::cerr << "[OpenGripper] Missing 'port': " << port.error() << std::endl;
+        std::cerr << "[OpenGripperAsync] Missing 'port'" << std::endl;
         return BT::NodeStatus::FAILURE;
     }
 
+    port_ = port.value();
+    timeout_ms_ = getInput<int>("timeout_ms").value_or(5000);
+    elapsed_ms_ = 0;
+
     try {
-        auto gripper = GripperManager::instance().get(port.value());
+        auto gripper = GripperManager::instance().get(port_);
         if (!gripper) {
-            std::cerr << "[OpenGripper] Gripper not found on port: " << port.value() << std::endl;
+            std::cerr << "[OpenGripperAsync] Gripper not found on port: " << port_ << std::endl;
             return BT::NodeStatus::FAILURE;
         }
-
-        std::cout << "[OpenGripper] Opening gripper on port: " << port.value() << std::endl;
 
         auto result = gripper->open();
         if (!result.has_value()) {
-            std::cerr << "[OpenGripper] Failed to open gripper: "
-                      << result.error().message << std::endl;
+            std::cerr << "[OpenGripperAsync] Failed to open: " << result.error().message << std::endl;
             return BT::NodeStatus::FAILURE;
         }
 
-        std::cout << "[OpenGripper] Open command sent successfully" << std::endl;
-        return BT::NodeStatus::SUCCESS;
+        std::cout << "[OpenGripperAsync] Opening gripper, waiting for completion..." << std::endl;
+        return BT::NodeStatus::RUNNING;
 
     } catch (const std::exception& e) {
-        std::cerr << "[OpenGripper] Exception: " << e.what() << std::endl;
+        std::cerr << "[OpenGripperAsync] Exception: " << e.what() << std::endl;
         return BT::NodeStatus::FAILURE;
     }
 }
 
-// ============================================================================
-// CloseGripper Implementation
-// ============================================================================
-
-BT::NodeStatus CloseGripper::tick() {
-    auto port = getInput<std::string>("port");
-    if (!port) {
-        std::cerr << "[CloseGripper] Missing 'port': " << port.error() << std::endl;
-        return BT::NodeStatus::FAILURE;
-    }
-
+BT::NodeStatus OpenGripperAsync::onRunning() {
     try {
-        auto gripper = GripperManager::instance().get(port.value());
-        if (!gripper) {
-            std::cerr << "[CloseGripper] Gripper not found on port: " << port.value() << std::endl;
+        auto gripper = GripperManager::instance().get(port_);
+        if (!gripper) return BT::NodeStatus::FAILURE;
+
+        auto status = gripper->getStatus();
+        if (status.has_value()) {
+            if (!status->is_moving) {
+                std::cout << "[OpenGripperAsync] Gripper opened successfully" << std::endl;
+                return BT::NodeStatus::SUCCESS;
+            }
+        }
+
+        elapsed_ms_ += 10;
+        if (elapsed_ms_ >= timeout_ms_) {
+            std::cerr << "[OpenGripperAsync] Timeout waiting for gripper to open" << std::endl;
             return BT::NodeStatus::FAILURE;
         }
 
-        std::cout << "[CloseGripper] Closing gripper on port: " << port.value() << std::endl;
+        return BT::NodeStatus::RUNNING;
+
+    } catch (const std::exception& e) {
+        std::cerr << "[OpenGripperAsync] Exception: " << e.what() << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+}
+
+void OpenGripperAsync::onHalted() {
+    std::cout << "[OpenGripperAsync] HALTED" << std::endl;
+}
+
+// ============================================================================
+// CloseGripperAsync Implementation
+// ============================================================================
+
+BT::NodeStatus CloseGripperAsync::onStart() {
+    auto port = getInput<std::string>("port");
+    if (!port) {
+        std::cerr << "[CloseGripperAsync] Missing 'port'" << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    port_ = port.value();
+    timeout_ms_ = getInput<int>("timeout_ms").value_or(5000);
+    elapsed_ms_ = 0;
+
+    try {
+        auto gripper = GripperManager::instance().get(port_);
+        if (!gripper) {
+            std::cerr << "[CloseGripperAsync] Gripper not found on port: " << port_ << std::endl;
+            return BT::NodeStatus::FAILURE;
+        }
 
         auto result = gripper->close();
         if (!result.has_value()) {
-            std::cerr << "[CloseGripper] Failed to close gripper: "
-                      << result.error().message << std::endl;
+            std::cerr << "[CloseGripperAsync] Failed to close: " << result.error().message << std::endl;
             return BT::NodeStatus::FAILURE;
         }
 
-        std::cout << "[CloseGripper] Close command sent successfully" << std::endl;
-        return BT::NodeStatus::SUCCESS;
+        std::cout << "[CloseGripperAsync] Closing gripper, waiting for completion..." << std::endl;
+        return BT::NodeStatus::RUNNING;
 
     } catch (const std::exception& e) {
-        std::cerr << "[CloseGripper] Exception: " << e.what() << std::endl;
+        std::cerr << "[CloseGripperAsync] Exception: " << e.what() << std::endl;
         return BT::NodeStatus::FAILURE;
     }
+}
+
+BT::NodeStatus CloseGripperAsync::onRunning() {
+    try {
+        auto gripper = GripperManager::instance().get(port_);
+        if (!gripper) return BT::NodeStatus::FAILURE;
+
+        auto status = gripper->getStatus();
+        if (status.has_value()) {
+            if (!status->is_moving) {
+                std::cout << "[CloseGripperAsync] Gripper closed successfully" << std::endl;
+                return BT::NodeStatus::SUCCESS;
+            }
+        }
+
+        elapsed_ms_ += 10;
+        if (elapsed_ms_ >= timeout_ms_) {
+            std::cerr << "[CloseGripperAsync] Timeout waiting for gripper to close" << std::endl;
+            return BT::NodeStatus::FAILURE;
+        }
+
+        return BT::NodeStatus::RUNNING;
+
+    } catch (const std::exception& e) {
+        std::cerr << "[CloseGripperAsync] Exception: " << e.what() << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+}
+
+void CloseGripperAsync::onHalted() {
+    std::cout << "[CloseGripperAsync] HALTED" << std::endl;
 }
 
 } // namespace gripper_bt

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: DetectAndConverge
+         Captures stereo images, detects ArUco markers, and iteratively
+         adjusts motors until both cameras converge on the marker.
+         ================================================================ -->
+    <BehaviorTree ID="DetectAndConverge">
+        <Sequence>
+            <!-- Convergence loop: retry up to max_attempts times -->
+            <RetryUntilSuccessful num_attempts="{max_convergence_attempts}">
+                <Sequence>
+                    <!-- Capture + Detect -->
+                    <CaptureStereoPair left_camera="{camera_left_name}"
+                                       right_camera="{camera_right_name}"
+                                       left_width="{left_width}" left_height="{left_height}"
+                                       right_width="{right_width}" right_height="{right_height}"/>
+
+                    <DetectAruco frame_name="left" dictionary="{aruco_dictionary}"
+                                marker_count="{left_marker_count}"/>
+                    <DetectAruco frame_name="right" dictionary="{aruco_dictionary}"
+                                marker_count="{right_marker_count}"/>
+
+                    <!-- Get pixel offsets for target marker -->
+                    <GetArucoCenterOffset frame_name="left" marker_id="{marker_id}"
+                                          image_width="{left_width}" image_height="{left_height}"
+                                          x_offset="{left_x_offset}" y_offset="{left_y_offset}"/>
+                    <GetArucoCenterOffset frame_name="right" marker_id="{marker_id}"
+                                          image_width="{right_width}" image_height="{right_height}"
+                                          x_offset="{right_x_offset}" y_offset="{right_y_offset}"/>
+
+                    <!-- Check if converged — if yes, SUCCESS exits the retry loop -->
+                    <Fallback>
+                        <CheckConverged left_x_offset="{left_x_offset}"
+                                        right_x_offset="{right_x_offset}"
+                                        tolerance="{convergence_tolerance}"/>
+                        <!-- Not converged: adjust motors and force failure to retry -->
+                        <Sequence>
+                            <!-- Get current motor positions -->
+                            <GetMotorStatus motor_index="{left_motor_index}"
+                                            actual_position="{left_motor_increment}"/>
+                            <GetMotorStatus motor_index="{right_motor_index}"
+                                            actual_position="{right_motor_increment}"/>
+
+                            <!-- Convert pixel offsets to motor targets -->
+                            <PixelOffsetsToMotorIncrements
+                                left_x_offset="{left_x_offset}"
+                                right_x_offset="{right_x_offset}"
+                                left_motor_increment="{left_motor_increment}"
+                                right_motor_increment="{right_motor_increment}"
+                                left_target_increment="{left_target_increment}"
+                                right_target_increment="{right_target_increment}"/>
+
+                            <!-- Move both motors simultaneously -->
+                            <SetMotorsAsync motor_index_1="{left_motor_index}"
+                                            target_position_1="{left_target_increment}"
+                                            motor_index_2="{right_motor_index}"
+                                            target_position_2="{right_target_increment}"/>
+
+                            <ForceFailure>
+                                <AlwaysSuccess/>
+                            </ForceFailure>
+                        </Sequence>
+                    </Fallback>
+                </Sequence>
+            </RetryUntilSuccessful>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

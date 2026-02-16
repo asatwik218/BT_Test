@@ -34,19 +34,7 @@
       <!-- Phase 2: AMR navigates to pick station                           -->
       <!-- ================================================================ -->
 
-      <GoToAMR ip="AMR_IP_PLACEHOLDER" dest_id="pick_station"/>
-
-      <!-- Poll until navigation completes (task_status == 4) -->
-      <RetryUntilSuccessful num_attempts="600">
-        <Sequence>
-          <Delay delay_msec="500">
-            <AlwaysSuccess/>
-          </Delay>
-          <GetAMRNavigationStatus ip="AMR_IP_PLACEHOLDER"
-                                  task_status="{nav_status}"/>
-          <ScriptCondition code="nav_status == 4"/>
-        </Sequence>
-      </RetryUntilSuccessful>
+      <GoToAMRAsync ip="AMR_IP_PLACEHOLDER" dest_id="pick_station"/>
 
       <!-- ================================================================ -->
       <!-- Phase 3: Iterative convergence loop                              -->
@@ -96,10 +84,10 @@
                   left_target_increment="{left_target_incr}"
                   right_target_increment="{right_target_incr}"/>
 
-              <SetMotors motor_index_1="0"
-                         target_position_1="{left_target_incr}"
-                         motor_index_2="1"
-                         target_position_2="{right_target_incr}"/>
+              <SetMotorsAsync motor_index_1="0"
+                              target_position_1="{left_target_incr}"
+                              motor_index_2="1"
+                              target_position_2="{right_target_incr}"/>
 
               <!-- Settle time for motors -->
             
@@ -174,41 +162,14 @@
       <!-- ================================================================ -->
 
       <Parallel success_count="2" failure_count="1">
-        <!-- Left arm -->
-        <Sequence>
-          <MoveRobot serial="LEFT_ROBOT_SERIAL"
-                     position_mm="{left_pick_pos}"
-                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
-          <RetryUntilSuccessful num_attempts="100">
-            <Sequence>
-              <Delay delay_msec="100">
-                <AlwaysSuccess/>
-              </Delay>
-              <CheckTargetReached serial="LEFT_ROBOT_SERIAL"
-                                  target_position_mm="{left_pick_pos}"
-                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
-                                  position_tolerance_mm="2.0"/>
-            </Sequence>
-          </RetryUntilSuccessful>
-        </Sequence>
-
-        <!-- Right arm -->
-        <Sequence>
-          <MoveRobot serial="RIGHT_ROBOT_SERIAL"
-                     position_mm="{right_pick_pos}"
-                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
-          <RetryUntilSuccessful num_attempts="100">
-            <Sequence>
-              <Delay delay_msec="100">
-                <AlwaysSuccess/>
-              </Delay>
-              <CheckTargetReached serial="RIGHT_ROBOT_SERIAL"
-                                  target_position_mm="{right_pick_pos}"
-                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
-                                  position_tolerance_mm="2.0"/>
-            </Sequence>
-          </RetryUntilSuccessful>
-        </Sequence>
+        <MoveRobotAsync serial="LEFT_ROBOT_SERIAL"
+                        position_mm="{left_pick_pos}"
+                        orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                        position_tolerance_mm="2.0"/>
+        <MoveRobotAsync serial="RIGHT_ROBOT_SERIAL"
+                        position_mm="{right_pick_pos}"
+                        orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                        position_tolerance_mm="2.0"/>
       </Parallel>
 
       <!-- ================================================================ -->
@@ -216,13 +177,9 @@
       <!-- ================================================================ -->
 
       <Parallel success_count="2" failure_count="1">
-        <CloseGripper port="LEFT_GRIPPER_PORT"/>
-        <CloseGripper port="RIGHT_GRIPPER_PORT"/>
+        <CloseGripperAsync port="LEFT_GRIPPER_PORT"/>
+        <CloseGripperAsync port="RIGHT_GRIPPER_PORT"/>
       </Parallel>
-
-      <Delay delay_msec="1000">
-        <AlwaysSuccess/>
-      </Delay>
 
       <!-- ================================================================ -->
       <!-- Phase 7: Lift both arms (parallel)                               -->
@@ -230,66 +187,30 @@
 
       <Parallel success_count="2" failure_count="1">
         <!-- Left arm lift -->
-        <Sequence>
-          <MoveRobot serial="LEFT_ROBOT_SERIAL"
-                     position_mm="{lift_left_pos}"
-                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
-          <RetryUntilSuccessful num_attempts="100">
-            <Sequence>
-              <Delay delay_msec="100">
-                <AlwaysSuccess/>
-              </Delay>
-              <CheckTargetReached serial="LEFT_ROBOT_SERIAL"
-                                  target_position_mm="{lift_left_pos}"
-                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
-                                  position_tolerance_mm="2.0"/>
-            </Sequence>
-          </RetryUntilSuccessful>
-        </Sequence>
-
+        <MoveRobotAsync serial="LEFT_ROBOT_SERIAL"
+                        position_mm="{lift_left_pos}"
+                        orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                        position_tolerance_mm="2.0"/>
         <!-- Right arm lift -->
-        <Sequence>
-          <MoveRobot serial="RIGHT_ROBOT_SERIAL"
-                     position_mm="{lift_right_pos}"
-                     orientation_deg="PICK_ORIENT_PLACEHOLDER"/>
-          <RetryUntilSuccessful num_attempts="100">
-            <Sequence>
-              <Delay delay_msec="100">
-                <AlwaysSuccess/>
-              </Delay>
-              <CheckTargetReached serial="RIGHT_ROBOT_SERIAL"
-                                  target_position_mm="{lift_right_pos}"
-                                  target_orientation_deg="PICK_ORIENT_PLACEHOLDER"
-                                  position_tolerance_mm="2.0"/>
-            </Sequence>
-          </RetryUntilSuccessful>
-        </Sequence>
+        <MoveRobotAsync serial="RIGHT_ROBOT_SERIAL"
+                        position_mm="{lift_right_pos}"
+                        orientation_deg="PICK_ORIENT_PLACEHOLDER"
+                        position_tolerance_mm="2.0"/>
       </Parallel>
 
       <!-- ================================================================ -->
       <!-- Phase 8: AMR moves to drop station                               -->
       <!-- ================================================================ -->
 
-      <GoToAMR ip="AMR_IP_PLACEHOLDER" dest_id="drop_station"/>
-
-      <RetryUntilSuccessful num_attempts="600">
-        <Sequence>
-          <Delay delay_msec="500">
-            <AlwaysSuccess/>
-          </Delay>
-          <GetAMRNavigationStatus ip="AMR_IP_PLACEHOLDER"
-                                  task_status="{nav_status}"/>
-          <ScriptCondition code="nav_status == 4"/>
-        </Sequence>
-      </RetryUntilSuccessful>
+      <GoToAMRAsync ip="AMR_IP_PLACEHOLDER" dest_id="drop_station"/>
 
       <!-- ================================================================ -->
       <!-- Phase 9: Drop the bin (open both grippers)                       -->
       <!-- ================================================================ -->
 
       <Parallel success_count="2" failure_count="1">
-        <OpenGripper port="LEFT_GRIPPER_PORT"/>
-        <OpenGripper port="RIGHT_GRIPPER_PORT"/>
+        <OpenGripperAsync port="LEFT_GRIPPER_PORT"/>
+        <OpenGripperAsync port="RIGHT_GRIPPER_PORT"/>
       </Parallel>
 
       <!-- ================================================================ -->

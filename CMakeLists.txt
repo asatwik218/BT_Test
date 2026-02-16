@@ -22,12 +22,17 @@ find_package(OpenCV REQUIRED)
 # Define your executable
 add_executable(${PROJECT_NAME}
     src/main.cpp
+    # Sync nodes
     src/nodes/flexiv/flexiv_nodes.cpp
     src/nodes/gripper/gripper_nodes.cpp
     src/nodes/camera/camera_nodes.cpp
     src/nodes/motor/motor_nodes.cpp
     src/nodes/amr/amr_nodes_new.cpp
     src/nodes/vision/vision_nodes.cpp
+    # Async nodes (StatefulActionNode — wait for completion, haltable)
+    src/nodes/amr/amr_nodes_async.cpp
+    # Monitoring nodes (fault detection)
+    src/nodes/monitoring/monitoring_nodes.cpp
 )
 
 # Include paths: src/ for node headers

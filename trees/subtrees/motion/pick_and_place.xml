@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: PickAndPlace
+         Complete pick and place sequence for a single arm:
+         Open gripper → Move to pick → Close gripper → Lift → Move to place → Open gripper
+         ================================================================ -->
+    <BehaviorTree ID="PickAndPlace">
+        <Sequence>
+            <!-- Open gripper before picking -->
+            <OpenGripperAsync port="{gripper_port}"/>
+
+            <!-- Move to pick position -->
+            <MoveRobotAsync serial="{robot_serial}"
+                            position_mm="{pick_position_mm}"
+                            orientation_deg="{pick_orientation_deg}"/>
+
+            <!-- Close gripper to grasp -->
+            <CloseGripperAsync port="{gripper_port}"/>
+
+            <!-- Lift -->
+            <MoveRobotAsync serial="{robot_serial}"
+                            position_mm="{lift_position_mm}"
+                            orientation_deg="{pick_orientation_deg}"/>
+
+            <!-- Move to place position -->
+            <MoveRobotAsync serial="{robot_serial}"
+                            position_mm="{place_position_mm}"
+                            orientation_deg="{place_orientation_deg}"/>
+
+            <!-- Release -->
+            <OpenGripperAsync port="{gripper_port}"/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

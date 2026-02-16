@@ -7,32 +7,14 @@
       <!-- Connect -->
       <ConnectAMR ip="AMR_IP_PLACEHOLDER" amr_type="SEER"/>
 
-      <!-- Move to first waypoint -->
-      <GoToAMR ip="AMR_IP_PLACEHOLDER" dest_id="waypoint_A"/>
-      <RetryUntilSuccessful num_attempts="600">
-        <Sequence>
-          <Delay delay_msec="500">
-            <AlwaysSuccess/>
-          </Delay>
-          <GetAMRNavigationStatus ip="AMR_IP_PLACEHOLDER" task_status="{nav_status}"/>
-          <ScriptCondition code="nav_status == 4"/>
-        </Sequence>
-      </RetryUntilSuccessful>
+      <!-- Move to first waypoint (waits for completion) -->
+      <GoToAMRAsync ip="AMR_IP_PLACEHOLDER" dest_id="waypoint_A"/>
 
       <!-- Stop at first waypoint -->
       <StopAMR ip="AMR_IP_PLACEHOLDER" emergency_stop="false"/>
 
-      <!-- Move to second waypoint -->
-      <GoToAMR ip="AMR_IP_PLACEHOLDER" dest_id="waypoint_B"/>
-      <RetryUntilSuccessful num_attempts="600">
-        <Sequence>
-          <Delay delay_msec="500">
-            <AlwaysSuccess/>
-          </Delay>
-          <GetAMRNavigationStatus ip="AMR_IP_PLACEHOLDER" task_status="{nav_status}"/>
-          <ScriptCondition code="nav_status == 4"/>
-        </Sequence>
-      </RetryUntilSuccessful>
+      <!-- Move to second waypoint (waits for completion) -->
+      <GoToAMRAsync ip="AMR_IP_PLACEHOLDER" dest_id="waypoint_B"/>
 
       <!-- Disconnect -->
       <DisconnectAMR ip="AMR_IP_PLACEHOLDER"/>

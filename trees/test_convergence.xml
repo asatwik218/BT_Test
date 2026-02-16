@@ -12,19 +12,23 @@
   <BehaviorTree ID="TestConvergence">
     <Sequence>
 
+      <!-- Define camera names -->
+      <Script code="left_cam  := 'FLIR-1E100157992A-0157992A';
+                    right_cam := 'FLIR-1E100157E98F-0157E98F'"/>
+
       <!-- ========== SETUP: Cameras ========== -->
-      <ConnectCamera camera_name="FLIR-1E100157992A-0157992A"/>
-      <SetPixelFormat camera_name="FLIR-1E100157992A-0157992A" pixel_format="MONO8"/>
-      <SetBinning     camera_name="FLIR-1E100157992A-0157992A" binning_x="4" binning_y="4"/>
-      <SetFrameRate   camera_name="FLIR-1E100157992A-0157992A" frame_rate="60"/>
+      <ConnectCamera camera_name="{left_cam}"/>
+      <SetPixelFormat camera_name="{left_cam}" pixel_format="MONO8"/>
+      <SetBinning     camera_name="{left_cam}" binning_x="4" binning_y="4"/>
+      <SetFrameRate   camera_name="{left_cam}" frame_rate="60"/>
 
-      <ConnectCamera camera_name="FLIR-1E100157E98F-0157E98F"/>
-      <SetPixelFormat camera_name="FLIR-1E100157E98F-0157E98F" pixel_format="MONO8"/>
-      <SetBinning     camera_name="FLIR-1E100157E98F-0157E98F" binning_x="4" binning_y="4"/>
-      <SetFrameRate   camera_name="FLIR-1E100157E98F-0157E98F" frame_rate="60"/>
+      <ConnectCamera camera_name="{right_cam}"/>
+      <SetPixelFormat camera_name="{right_cam}" pixel_format="MONO8"/>
+      <SetBinning     camera_name="{right_cam}" binning_x="4" binning_y="4"/>
+      <SetFrameRate   camera_name="{right_cam}" frame_rate="60"/>
 
-      <StartAcquisition camera_name="FLIR-1E100157992A-0157992A"/>
-      <StartAcquisition camera_name="FLIR-1E100157E98F-0157E98F"/>
+      <StartAcquisition camera_name="{left_cam}"/>
+      <StartAcquisition camera_name="{right_cam}"/>
 
       <!-- ========== SETUP: Motors ========== -->
       <ConnectMotors motor_count="{motor_count}"/>
@@ -48,8 +52,8 @@
       <RetryUntilSuccessful num_attempts="20">
         <Sequence>
           <!-- Capture stereo pair -->
-          <CaptureStereoPair left_camera="FLIR-1E100157992A-0157992A"
-                             right_camera="FLIR-1E100157E98F-0157E98F"
+          <CaptureStereoPair left_camera="{left_cam}"
+                             right_camera="{right_cam}"
                              left_width="{left_width}" left_height="{left_height}"
                              right_width="{right_width}" right_height="{right_height}"/>
 
@@ -92,8 +96,8 @@
                   right_target_increment="{right_target_incr}"/>
 
               <!-- Move motors to new targets -->
-              <SetMotors motor_index_1="0" target_position_1="{left_target_incr}"
-                         motor_index_2="1" target_position_2="{right_target_incr}"/>
+              <SetMotorsAsync motor_index_1="0" target_position_1="{left_target_incr}"
+                              motor_index_2="1" target_position_2="{right_target_incr}"/>
 
               <!-- Wait for motors to settle -->
               <Delay delay_msec="500">
@@ -166,10 +170,10 @@
       <StopMotor motor_index="0"/>
       <StopMotor motor_index="1"/>
       <DisconnectMotors/>
-      <StopAcquisition camera_name="FLIR-1E100157992A-0157992A"/>
-      <StopAcquisition camera_name="FLIR-1E100157E98F-0157E98F"/>
-      <DisconnectCamera camera_name="FLIR-1E100157992A-0157992A"/>
-      <DisconnectCamera camera_name="FLIR-1E100157E98F-0157E98F"/>
+      <StopAcquisition camera_name="{left_cam}"/>
+      <StopAcquisition camera_name="{right_cam}"/>
+      <DisconnectCamera camera_name="{left_cam}"/>
+      <DisconnectCamera camera_name="{right_cam}"/>
 
     </Sequence>
   </BehaviorTree>

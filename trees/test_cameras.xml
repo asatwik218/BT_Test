@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4">
-
   <BehaviorTree ID="TestCameras">
     <Sequence>
-
+      
       <!-- Connect both cameras -->
       <ConnectCamera camera_name="left_cam"/>
       <ConnectCamera camera_name="right_cam"/>
@@ -13,20 +12,16 @@
       <StartAcquisition camera_name="right_cam"/>
 
       <!-- Acquire a frame from each -->
-      <AcquireFrame camera_name="left_cam"
-                    width="{left_w}" height="{left_h}" channels="{left_ch}"/>
-      <AcquireFrame camera_name="right_cam"
-                    width="{right_w}" height="{right_h}" channels="{right_ch}"/>
+      <AcquireFrame camera_name="left_cam" width="{left_w}" height="{left_h}" channels="{left_ch}"/>
+      <AcquireFrame camera_name="right_cam" width="{right_w}" height="{right_h}" channels="{right_ch}"/>
 
       <!-- Release frames -->
       <ReleaseFrame camera_name="left_cam"/>
       <ReleaseFrame camera_name="right_cam"/>
 
       <!-- Acquire again to verify continuous operation -->
-      <AcquireFrame camera_name="left_cam"
-                    width="{left_w}" height="{left_h}" channels="{left_ch}"/>
-      <AcquireFrame camera_name="right_cam"
-                    width="{right_w}" height="{right_h}" channels="{right_ch}"/>
+      <AcquireFrame camera_name="left_cam" width="{left_w}" height="{left_h}" channels="{left_ch}"/>
+      <AcquireFrame camera_name="right_cam" width="{right_w}" height="{right_h}" channels="{right_ch}"/>
 
       <ReleaseFrame camera_name="left_cam"/>
       <ReleaseFrame camera_name="right_cam"/>

@@ -293,55 +293,7 @@ public:
 };
 
 // ============================================================================
-// Node 5: SetMotor
-// ============================================================================
-class SetMotor : public BT::SyncActionNode {
-public:
-    SetMotor(const std::string& name, const BT::NodeConfig& config)
-        : BT::SyncActionNode(name, config) {}
-
-    static BT::PortsList providedPorts() {
-        return {
-            BT::InputPort<int>("motor_index", "Motor index (0-based)"),
-            BT::InputPort<int32_t>("target_position", "Target position in counts"),
-            BT::InputPort<uint32_t>("profile_acceleration", 1000, "Profile acceleration"),
-            BT::InputPort<uint32_t>("profile_deceleration", 1000, "Profile deceleration"),
-            BT::InputPort<uint32_t>("profile_velocity", 20, "Profile velocity"),
-            BT::InputPort<bool>("relative", false, "Use relative positioning")
-        };
-    }
-
-    BT::NodeStatus tick() override;
-};
-
-// ============================================================================
-// Node 6: SetMotors (sends two sequential Set_Motor calls)
-// ============================================================================
-class SetMotors : public BT::SyncActionNode {
-public:
-    SetMotors(const std::string& name, const BT::NodeConfig& config)
-        : BT::SyncActionNode(name, config) {}
-
-    static BT::PortsList providedPorts() {
-        return {
-            BT::InputPort<int>("motor_index_1", "First motor index"),
-            BT::InputPort<int32_t>("target_position_1", "First motor target position"),
-            BT::InputPort<uint32_t>("profile_acceleration_1", 1000, "First motor acceleration"),
-            BT::InputPort<uint32_t>("profile_deceleration_1", 1000, "First motor deceleration"),
-            BT::InputPort<uint32_t>("profile_velocity_1", 20, "First motor velocity"),
-            BT::InputPort<int>("motor_index_2", "Second motor index"),
-            BT::InputPort<int32_t>("target_position_2", "Second motor target position"),
-            BT::InputPort<uint32_t>("profile_acceleration_2", 1000, "Second motor acceleration"),
-            BT::InputPort<uint32_t>("profile_deceleration_2", 1000, "Second motor deceleration"),
-            BT::InputPort<uint32_t>("profile_velocity_2", 20, "Second motor velocity")
-        };
-    }
-
-    BT::NodeStatus tick() override;
-};
-
-// ============================================================================
-// Node 7: GetMotorStatus
+// Node 5: GetMotorStatus
 // ============================================================================
 class GetMotorStatus : public BT::SyncActionNode {
 public:
@@ -392,6 +344,72 @@ public:
 };
 
 // ============================================================================
+// SetMotorAsync — sends command in onStart, polls position in onRunning
+// ============================================================================
+class SetMotorAsync : public BT::StatefulActionNode {
+public:
+    SetMotorAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<int>("motor_index", "Motor index (0-based)"),
+            BT::InputPort<int32_t>("target_position", "Target position in counts"),
+            BT::InputPort<uint32_t>("profile_acceleration", 1000, "Profile acceleration"),
+            BT::InputPort<uint32_t>("profile_deceleration", 1000, "Profile deceleration"),
+            BT::InputPort<uint32_t>("profile_velocity", 20, "Profile velocity"),
+            BT::InputPort<bool>("relative", false, "Use relative positioning"),
+            BT::InputPort<int32_t>("position_tolerance", 100, "Position tolerance in counts")
+        };
+    }
+
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    int motor_index_ = 0;
+    StMotor motor_{};
+    int32_t target_position_ = 0;
+    int32_t tolerance_ = 100;
+};
+
+// ============================================================================
+// SetMotorsAsync — sends two motor commands, polls both positions
+// ============================================================================
+class SetMotorsAsync : public BT::StatefulActionNode {
+public:
+    SetMotorsAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<int>("motor_index_1", "First motor index"),
+            BT::InputPort<int32_t>("target_position_1", "First motor target position"),
+            BT::InputPort<uint32_t>("profile_acceleration_1", 1000, "First motor acceleration"),
+            BT::InputPort<uint32_t>("profile_deceleration_1", 1000, "First motor deceleration"),
+            BT::InputPort<uint32_t>("profile_velocity_1", 20, "First motor velocity"),
+            BT::InputPort<int>("motor_index_2", "Second motor index"),
+            BT::InputPort<int32_t>("target_position_2", "Second motor target position"),
+            BT::InputPort<uint32_t>("profile_acceleration_2", 1000, "Second motor acceleration"),
+            BT::InputPort<uint32_t>("profile_deceleration_2", 1000, "Second motor deceleration"),
+            BT::InputPort<uint32_t>("profile_velocity_2", 20, "Second motor velocity"),
+            BT::InputPort<int32_t>("position_tolerance", 100, "Position tolerance in counts")
+        };
+    }
+
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    StMotor motor1_{}, motor2_{};
+    int idx1_ = 0, idx2_ = 0;
+    int32_t target1_ = 0, target2_ = 0;
+    int32_t tolerance_ = 100;
+};
+
+// ============================================================================
 // Registration helper
 // ============================================================================
 inline void registerMotorNodes(BT::BehaviorTreeFactory& factory) {
@@ -399,11 +417,11 @@ inline void registerMotorNodes(BT::BehaviorTreeFactory& factory) {
     factory.registerNodeType<DisconnectMotors>("DisconnectMotors");
     factory.registerNodeType<StartMotor>("StartMotor");
     factory.registerNodeType<StopMotor>("StopMotor");
-    factory.registerNodeType<SetMotor>("SetMotor");
-    factory.registerNodeType<SetMotors>("SetMotors");
     factory.registerNodeType<GetMotorStatus>("GetMotorStatus");
     factory.registerNodeType<MakeHome>("MakeHome");
     factory.registerNodeType<RecalibrateHome>("RecalibrateHome");
+    factory.registerNodeType<SetMotorAsync>("SetMotorAsync");
+    factory.registerNodeType<SetMotorsAsync>("SetMotorsAsync");
 }
 
 } // namespace motor_bt

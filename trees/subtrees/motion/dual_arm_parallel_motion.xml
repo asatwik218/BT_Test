@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: DualArmParallelMotion
+         Moves both robot arms simultaneously to their target positions.
+         Both must reach their targets for success.
+         ================================================================ -->
+    <BehaviorTree ID="DualArmParallelMotion">
+        <Parallel success_count="2" failure_count="1">
+            <MoveRobotAsync serial="{robot_left_serial}"
+                            position_mm="{left_position_mm}"
+                            orientation_deg="{left_orientation_deg}"/>
+            <MoveRobotAsync serial="{robot_right_serial}"
+                            position_mm="{right_position_mm}"
+                            orientation_deg="{right_orientation_deg}"/>
+        </Parallel>
+    </BehaviorTree>
+
+</root>

@@ -307,49 +307,6 @@ public:
     BT::NodeStatus tick() override;
 };
 
-class TranslateAMR : public BT::SyncActionNode {
-public:
-    TranslateAMR(const std::string& n, const BT::NodeConfig& c) : BT::SyncActionNode(n, c) {}
-    static BT::PortsList providedPorts() {
-        return { BT::InputPort<std::string>("ip", "AMR IP address"),
-                 BT::InputPort<std::string>("amr_type", "SEER", "AMR type"),
-                 BT::InputPort<float>("distance", "Translation distance (m)"),
-                 BT::InputPort<float>("vel_x", 0.0f, "Velocity X (m/s)"),
-                 BT::InputPort<float>("vel_y", 0.0f, "Velocity Y (m/s)") };
-    }
-    BT::NodeStatus tick() override;
-};
-
-class RotateAMR : public BT::SyncActionNode {
-public:
-    RotateAMR(const std::string& n, const BT::NodeConfig& c) : BT::SyncActionNode(n, c) {}
-    static BT::PortsList providedPorts() {
-        return { BT::InputPort<std::string>("ip", "AMR IP address"),
-                 BT::InputPort<std::string>("amr_type", "SEER", "AMR type"),
-                 BT::InputPort<float>("angle", "Rotation angle (rad)"),
-                 BT::InputPort<float>("ang_vel", 0.0f, "Angular velocity (rad/s)") };
-    }
-    BT::NodeStatus tick() override;
-};
-
-class GoToAMR : public BT::SyncActionNode {
-public:
-    GoToAMR(const std::string& n, const BT::NodeConfig& c) : BT::SyncActionNode(n, c) {}
-    static BT::PortsList providedPorts() {
-        return { BT::InputPort<std::string>("ip", "AMR IP address"),
-                 BT::InputPort<std::string>("amr_type", "SEER", "AMR type"),
-                 BT::InputPort<std::string>("source_id", "SELF_POSITION", "Source position ID"),
-                 BT::InputPort<std::string>("dest_id", "Destination position ID"),
-                 BT::InputPort<std::string>("movement_mode", "forward", "Movement mode"),
-                 BT::InputPort<float>("arrival_angle", 0.0f, "Arrival angle (rad)"),
-                 BT::InputPort<float>("max_vel", 0.0f, "Max velocity (m/s)"),
-                 BT::InputPort<float>("max_ang_vel", 0.0f, "Max angular velocity (rad/s)"),
-                 BT::InputPort<float>("max_acc", 0.0f, "Max acceleration (m/s^2)"),
-                 BT::InputPort<float>("max_ang_acc", 0.0f, "Max angular acceleration (rad/s^2)") };
-    }
-    BT::NodeStatus tick() override;
-};
-
 class PauseAMR : public BT::SyncActionNode {
 public:
     PauseAMR(const std::string& n, const BT::NodeConfig& c) : BT::SyncActionNode(n, c) {}
@@ -508,9 +465,6 @@ inline void registerAMRNodes(BT::BehaviorTreeFactory& factory) {
     factory.registerNodeType<ConnectAMR>("ConnectAMR");
     factory.registerNodeType<DisconnectAMR>("DisconnectAMR");
     factory.registerNodeType<RelocateAMR>("RelocateAMR");
-    factory.registerNodeType<TranslateAMR>("TranslateAMR");
-    factory.registerNodeType<RotateAMR>("RotateAMR");
-    factory.registerNodeType<GoToAMR>("GoToAMR");
     factory.registerNodeType<PauseAMR>("PauseAMR");
     factory.registerNodeType<ResumeAMR>("ResumeAMR");
     factory.registerNodeType<CancelAMR>("CancelAMR");

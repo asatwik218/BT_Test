@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="MainTree">
+
+    <!-- ================================================================
+         TEMPLATE: Full dual-arm system with monitoring + fault handling
+
+         Features:
+         - Hardware initialization and cleanup
+         - Continuous fault monitoring (motors, robots, AMR)
+         - Emergency stop support (ESC key — handled in C++ tick loop)
+         - Modular SubTrees for detect, converge, grasp, pick-and-place
+         - Graceful cleanup on success or failure
+
+         Usage:
+         1. Fill in the blackboard parameters below with your hardware config
+         2. Replace the YOUR_MAIN_TASK placeholder with your workflow
+         3. Load SubTree XML files via factory.registerBehaviorTreeFromFile()
+            or include them inline below
+
+         ESC key: Handled by EmergencyStopManager in main.cpp — calls
+         tree.haltTree() which propagates to all RUNNING StatefulActionNodes
+         ================================================================ -->
+
+    <!-- ================================================================
+         SubTree Includes (load these via factory or include inline)
+         ================================================================ -->
+    <!-- Include SubTree definitions from separate files, or paste them here -->
+
+    <!-- Fault Monitoring SubTree -->
+    <BehaviorTree ID="FaultMonitoring">
+        <Repeat num_cycles="-1">
+            <Sequence>
+                <Delay delay_msec="100">
+                    <AlwaysSuccess/>
+                </Delay>
+                <CheckMotorFaults num_motors="{num_motors}"/>
+                <CheckRobotFaults serial="{robot_left_serial}"/>
+                <CheckRobotFaults serial="{robot_right_serial}"/>
+            </Sequence>
+        </Repeat>
+    </BehaviorTree>
+
+    <!-- DetectAndConverge SubTree -->
+    <BehaviorTree ID="DetectAndConverge">
+        <Sequence>
+            <RetryUntilSuccessful num_attempts="{max_convergence_attempts}">
+                <Sequence>
+                    <CaptureStereoPair left_camera="{camera_left_name}"
+                                       right_camera="{camera_right_name}"
+                                       left_width="{left_width}" left_height="{left_height}"
+                                       right_width="{right_width}" right_height="{right_height}"/>
+                    <DetectAruco frame_name="left" dictionary="{aruco_dictionary}"/>
+                    <DetectAruco frame_name="right" dictionary="{aruco_dictionary}"/>
+                    <GetArucoCenterOffset frame_name="left" marker_id="{marker_id}"
+                                          image_width="{left_width}" image_height="{left_height}"
+                                          x_offset="{left_x_offset}" y_offset="{left_y_offset}"/>
+                    <GetArucoCenterOffset frame_name="right" marker_id="{marker_id}"
+                                          image_width="{right_width}" image_height="{right_height}"
+                                          x_offset="{right_x_offset}" y_offset="{right_y_offset}"/>
+                    <Fallback>
+                        <CheckConverged left_x_offset="{left_x_offset}"
+                                        right_x_offset="{right_x_offset}"
+                                        tolerance="{convergence_tolerance}"/>
+                        <Sequence>
+                            <GetMotorStatus motor_index="{left_motor_index}"
+                                            actual_position="{left_motor_increment}"/>
+                            <GetMotorStatus motor_index="{right_motor_index}"
+                                            actual_position="{right_motor_increment}"/>
+                            <PixelOffsetsToMotorIncrements
+                                left_x_offset="{left_x_offset}"
+                                right_x_offset="{right_x_offset}"
+                                left_motor_increment="{left_motor_increment}"
+                                right_motor_increment="{right_motor_increment}"
+                                left_target_increment="{left_target_increment}"
+                                right_target_increment="{right_target_increment}"/>
+                            <SetMotorsAsync motor_index_1="{left_motor_index}"
+                                            target_position_1="{left_target_increment}"
+                                            motor_index_2="{right_motor_index}"
+                                            target_position_2="{right_target_increment}"/>
+                            <ForceFailure>
+                                <AlwaysSuccess/>
+                            </ForceFailure>
+                        </Sequence>
+                    </Fallback>
+                </Sequence>
+            </RetryUntilSuccessful>
+        </Sequence>
+    </BehaviorTree>
+
+    <!-- Compute3DPoint SubTree -->
+    <BehaviorTree ID="Compute3DPoint">
+        <Sequence>
+            <GetMotorStatus motor_index="{left_motor_index}"
+                            actual_position="{left_motor_increment}"/>
+            <GetMotorStatus motor_index="{right_motor_index}"
+                            actual_position="{right_motor_increment}"/>
+            <IncrementsToDegreesMotors
+                left_motor_increment="{left_motor_increment}"
+                right_motor_increment="{right_motor_increment}"
+                left_parallel_angle="{left_parallel_angle}"
+                right_parallel_angle="{right_parallel_angle}"
+                left_degree_angle="{left_degree_angle}"
+                right_degree_angle="{right_degree_angle}"/>
+            <ConvergenceTriangulation
+                left_degree_angle="{left_degree_angle}"
+                right_degree_angle="{right_degree_angle}"
+                baseline="{baseline}"
+                depth="{depth}"
+                pan_angle_deg="{pan_angle_deg}"/>
+            <YPixelOffsetToAngle
+                vfov="{vfov}"
+                y_pixel_offset="{left_y_offset}"
+                image_half_height="{image_half_height}"
+                y_angle_deg="{y_angle_deg}"/>
+            <ComputeConvergencePoint
+                robot_pose="{robot_pose}"
+                depth="{depth}"
+                pan_angle_deg="{pan_angle_deg}"
+                y_angle_deg="{y_angle_deg}"
+                a6_rotation_angle="{a6_rotation_angle}"
+                convergence_x="{convergence_x}"
+                convergence_y="{convergence_y}"
+                convergence_z="{convergence_z}"/>
+        </Sequence>
+    </BehaviorTree>
+
+    <!-- ================================================================
+         Main Tree
+         ================================================================ -->
+    <BehaviorTree ID="MainTree">
+        <Sequence>
+            <!-- ============================================================
+                 STEP 1: Set all blackboard parameters
+                 ============================================================ -->
+
+            <!-- Hardware identifiers — FILL THESE IN -->
+            <SetBlackboard output_key="robot_left_serial"   value="YOUR_LEFT_ROBOT_SERIAL"/>
+            <SetBlackboard output_key="robot_right_serial"  value="YOUR_RIGHT_ROBOT_SERIAL"/>
+            <SetBlackboard output_key="gripper_left_port"   value="COM3"/>
+            <SetBlackboard output_key="gripper_right_port"  value="COM4"/>
+            <SetBlackboard output_key="gripper_left_type"   value="DHAG"/>
+            <SetBlackboard output_key="gripper_right_type"  value="DHAG"/>
+            <SetBlackboard output_key="camera_left_name"    value="YOUR_LEFT_CAMERA"/>
+            <SetBlackboard output_key="camera_right_name"   value="YOUR_RIGHT_CAMERA"/>
+            <SetBlackboard output_key="camera_pixel_format" value="MONO8"/>
+            <SetBlackboard output_key="camera_binning_x"    value="4"/>
+            <SetBlackboard output_key="camera_binning_y"    value="4"/>
+            <SetBlackboard output_key="camera_fps"          value="60"/>
+            <SetBlackboard output_key="motor_dll_path"      value="CyMotorControlInterface.dll"/>
+            <SetBlackboard output_key="num_motors"          value="2"/>
+            <SetBlackboard output_key="amr_ip"              value="192.168.1.100"/>
+            <SetBlackboard output_key="amr_type"            value="SEER"/>
+            <SetBlackboard output_key="amr_dll_path"        value="CyAMR.dll"/>
+
+            <!-- Vision parameters -->
+            <SetBlackboard output_key="marker_id"                  value="0"/>
+            <SetBlackboard output_key="aruco_dictionary"           value="DICT_4X4_50"/>
+            <SetBlackboard output_key="left_motor_index"           value="0"/>
+            <SetBlackboard output_key="right_motor_index"          value="1"/>
+            <SetBlackboard output_key="left_parallel_angle"        value="5783"/>
+            <SetBlackboard output_key="right_parallel_angle"       value="-5806"/>
+            <SetBlackboard output_key="convergence_tolerance"      value="5.0"/>
+            <SetBlackboard output_key="max_convergence_attempts"   value="20"/>
+            <SetBlackboard output_key="baseline"                   value="90.0"/>
+            <SetBlackboard output_key="vfov"                       value="11.65"/>
+            <SetBlackboard output_key="image_half_height"          value="256"/>
+            <SetBlackboard output_key="robot_pose"                 value="0;0;0;0;0;0"/>
+            <SetBlackboard output_key="a6_rotation_angle"          value="0"/>
+
+            <!-- ============================================================
+                 STEP 2: Initialize all hardware
+                 ============================================================ -->
+            <ConnectMotors dll_path="{motor_dll_path}" num_motors="{num_motors}"/>
+            <ConnectRobot serial="{robot_left_serial}"/>
+            <ConnectRobot serial="{robot_right_serial}"/>
+            <ConnectGripper port="{gripper_left_port}" gripper_type="{gripper_left_type}"/>
+            <ConnectGripper port="{gripper_right_port}" gripper_type="{gripper_right_type}"/>
+            <ConnectCamera camera_name="{camera_left_name}"
+                           pixel_format="{camera_pixel_format}"
+                           binning_x="{camera_binning_x}" binning_y="{camera_binning_y}"
+                           fps="{camera_fps}"/>
+            <ConnectCamera camera_name="{camera_right_name}"
+                           pixel_format="{camera_pixel_format}"
+                           binning_x="{camera_binning_x}" binning_y="{camera_binning_y}"
+                           fps="{camera_fps}"/>
+
+            <!-- ============================================================
+                 STEP 3: Main task with fault monitoring
+                 ============================================================ -->
+            <Parallel success_count="1" failure_count="1">
+
+                <!-- === YOUR MAIN TASK HERE === -->
+                <Sequence>
+
+                    <!-- Example: Detect → Converge → Compute 3D → Pick -->
+                    <SubTree ID="DetectAndConverge"/>
+                    <SubTree ID="Compute3DPoint"/>
+
+                    <!-- Compute pick poses -->
+                    <ComputePickPoses convergence_x="{convergence_x}"
+                                      convergence_y="{convergence_y}"
+                                      convergence_z="{convergence_z}"
+                                      left_pick_position="{left_pick_position}"
+                                      right_pick_position="{right_pick_position}"
+                                      lift_left_position="{lift_left_position}"
+                                      lift_right_position="{lift_right_position}"/>
+
+                    <!-- Dual arm parallel motion to pick positions -->
+                    <Parallel success_count="2" failure_count="1">
+                        <Sequence>
+                            <OpenGripperAsync port="{gripper_left_port}"/>
+                            <MoveRobotAsync serial="{robot_left_serial}"
+                                            position_mm="{left_pick_position}"
+                                            orientation_deg="{pick_orientation}"/>
+                            <CloseGripperAsync port="{gripper_left_port}"/>
+                        </Sequence>
+                        <Sequence>
+                            <OpenGripperAsync port="{gripper_right_port}"/>
+                            <MoveRobotAsync serial="{robot_right_serial}"
+                                            position_mm="{right_pick_position}"
+                                            orientation_deg="{pick_orientation}"/>
+                            <CloseGripperAsync port="{gripper_right_port}"/>
+                        </Sequence>
+                    </Parallel>
+
+                    <!-- Lift both arms -->
+                    <Parallel success_count="2" failure_count="1">
+                        <MoveRobotAsync serial="{robot_left_serial}"
+                                        position_mm="{lift_left_position}"
+                                        orientation_deg="{pick_orientation}"/>
+                        <MoveRobotAsync serial="{robot_right_serial}"
+                                        position_mm="{lift_right_position}"
+                                        orientation_deg="{pick_orientation}"/>
+                    </Parallel>
+
+                </Sequence>
+                <!-- === END MAIN TASK === -->
+
+                <!-- Fault monitoring (runs continuously alongside main task) -->
+                <SubTree ID="FaultMonitoring"/>
+
+            </Parallel>
+
+            <!-- ============================================================
+                 STEP 4: Cleanup (always runs, even after failure)
+                 ============================================================ -->
+            <AlwaysSuccess>
+                <Sequence>
+                    <AlwaysSuccess><StopRobot serial="{robot_left_serial}"/></AlwaysSuccess>
+                    <AlwaysSuccess><StopRobot serial="{robot_right_serial}"/></AlwaysSuccess>
+                    <AlwaysSuccess><OpenGripperAsync port="{gripper_left_port}"/></AlwaysSuccess>
+                    <AlwaysSuccess><OpenGripperAsync port="{gripper_right_port}"/></AlwaysSuccess>
+                    <AlwaysSuccess><DisconnectCamera camera_name="{camera_left_name}"/></AlwaysSuccess>
+                    <AlwaysSuccess><DisconnectCamera camera_name="{camera_right_name}"/></AlwaysSuccess>
+                    <AlwaysSuccess><DisconnectGripper port="{gripper_left_port}"/></AlwaysSuccess>
+                    <AlwaysSuccess><DisconnectGripper port="{gripper_right_port}"/></AlwaysSuccess>
+                    <AlwaysSuccess><DisconnectRobot serial="{robot_left_serial}"/></AlwaysSuccess>
+                    <AlwaysSuccess><DisconnectRobot serial="{robot_right_serial}"/></AlwaysSuccess>
+                    <AlwaysSuccess><DisconnectMotors/></AlwaysSuccess>
+                    <ClearVision/>
+                </Sequence>
+            </AlwaysSuccess>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

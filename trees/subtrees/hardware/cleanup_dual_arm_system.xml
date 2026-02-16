@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: CleanupDualArmSystem
+         Gracefully disconnects all hardware
+         ================================================================ -->
+    <BehaviorTree ID="CleanupDualArmSystem">
+        <Sequence>
+            <!-- Stop robots first -->
+            <AlwaysSuccess>
+                <StopRobot serial="{robot_left_serial}"/>
+            </AlwaysSuccess>
+            <AlwaysSuccess>
+                <StopRobot serial="{robot_right_serial}"/>
+            </AlwaysSuccess>
+
+            <!-- Open grippers (safety — release anything held) -->
+            <AlwaysSuccess>
+                <OpenGripperAsync port="{gripper_left_port}"/>
+            </AlwaysSuccess>
+            <AlwaysSuccess>
+                <OpenGripperAsync port="{gripper_right_port}"/>
+            </AlwaysSuccess>
+
+            <!-- Disconnect cameras -->
+            <AlwaysSuccess>
+                <DisconnectCamera camera_name="{camera_left_name}"/>
+            </AlwaysSuccess>
+            <AlwaysSuccess>
+                <DisconnectCamera camera_name="{camera_right_name}"/>
+            </AlwaysSuccess>
+
+            <!-- Disconnect grippers -->
+            <AlwaysSuccess>
+                <DisconnectGripper port="{gripper_left_port}"/>
+            </AlwaysSuccess>
+            <AlwaysSuccess>
+                <DisconnectGripper port="{gripper_right_port}"/>
+            </AlwaysSuccess>
+
+            <!-- Disconnect robots -->
+            <AlwaysSuccess>
+                <DisconnectRobot serial="{robot_left_serial}"/>
+            </AlwaysSuccess>
+            <AlwaysSuccess>
+                <DisconnectRobot serial="{robot_right_serial}"/>
+            </AlwaysSuccess>
+
+            <!-- Disconnect motors -->
+            <AlwaysSuccess>
+                <DisconnectMotors/>
+            </AlwaysSuccess>
+
+            <!-- Clear vision data -->
+            <ClearVision/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

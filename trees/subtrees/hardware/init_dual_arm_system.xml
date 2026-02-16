@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: InitDualArmSystem
+         Connects all hardware: two robots, two grippers, motors, cameras, AMR
+         ================================================================ -->
+    <BehaviorTree ID="InitDualArmSystem">
+        <Sequence>
+            <!-- Connect Motors -->
+            <ConnectMotors dll_path="{motor_dll_path}" num_motors="{num_motors}"/>
+
+            <!-- Connect Robot Arms -->
+            <ConnectRobot serial="{robot_left_serial}"/>
+            <ConnectRobot serial="{robot_right_serial}"/>
+
+            <!-- Connect Grippers -->
+            <ConnectGripper port="{gripper_left_port}" gripper_type="{gripper_left_type}"/>
+            <ConnectGripper port="{gripper_right_port}" gripper_type="{gripper_right_type}"/>
+
+            <!-- Connect Cameras -->
+            <ConnectCamera camera_name="{camera_left_name}"
+                           pixel_format="{camera_pixel_format}"
+                           binning_x="{camera_binning_x}" binning_y="{camera_binning_y}"
+                           fps="{camera_fps}"/>
+            <ConnectCamera camera_name="{camera_right_name}"
+                           pixel_format="{camera_pixel_format}"
+                           binning_x="{camera_binning_x}" binning_y="{camera_binning_y}"
+                           fps="{camera_fps}"/>
+
+            <!-- Connect AMR (optional — wrapped in AlwaysSuccess) -->
+            <AlwaysSuccess>
+                <ConnectAMR ip="{amr_ip}" amr_type="{amr_type}" dll_path="{amr_dll_path}"/>
+            </AlwaysSuccess>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: FaultMonitoring
+         Infinite loop that polls all hardware for faults.
+         Returns FAILURE if any fault is detected (which triggers
+         Parallel node to halt the main task).
+
+         Use inside a Parallel node:
+           <Parallel success_count="1" failure_count="1">
+               <SubTree ID="MainTask" .../>
+               <SubTree ID="FaultMonitoring" .../>
+           </Parallel>
+         ================================================================ -->
+    <BehaviorTree ID="FaultMonitoring">
+        <Repeat num_cycles="-1">
+            <Sequence>
+                <!-- Poll interval (100ms delay between checks) -->
+                <Delay delay_msec="100">
+                    <AlwaysSuccess/>
+                </Delay>
+
+                <!-- Check motor faults -->
+                <CheckMotorFaults num_motors="{num_motors}"/>
+
+                <!-- Check robot faults (left) -->
+                <CheckRobotFaults serial="{robot_left_serial}"/>
+
+                <!-- Check robot faults (right) -->
+                <CheckRobotFaults serial="{robot_right_serial}"/>
+
+                <!-- Check AMR faults (optional — wrapped in AlwaysSuccess if no AMR) -->
+                <AlwaysSuccess>
+                    <CheckAMRFaults ip="{amr_ip}" amr_type="{amr_type}"
+                                    min_battery_level="{amr_min_battery}"/>
+                </AlwaysSuccess>
+            </Sequence>
+        </Repeat>
+    </BehaviorTree>
+
+</root>

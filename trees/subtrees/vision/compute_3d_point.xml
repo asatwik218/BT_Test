@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <!-- ================================================================
+         SubTree: Compute3DPoint
+         After convergence, computes the 3D convergence point from motor
+         angles, stereo triangulation, and robot pose.
+         ================================================================ -->
+    <BehaviorTree ID="Compute3DPoint">
+        <Sequence>
+            <!-- Get final motor positions -->
+            <GetMotorStatus motor_index="{left_motor_index}"
+                            actual_position="{left_motor_increment}"/>
+            <GetMotorStatus motor_index="{right_motor_index}"
+                            actual_position="{right_motor_increment}"/>
+
+            <!-- Convert motor increments to degree angles -->
+            <IncrementsToDegreesMotors
+                left_motor_increment="{left_motor_increment}"
+                right_motor_increment="{right_motor_increment}"
+                left_parallel_angle="{left_parallel_angle}"
+                right_parallel_angle="{right_parallel_angle}"
+                left_degree_angle="{left_degree_angle}"
+                right_degree_angle="{right_degree_angle}"/>
+
+            <!-- Stereo triangulation -->
+            <ConvergenceTriangulation
+                left_degree_angle="{left_degree_angle}"
+                right_degree_angle="{right_degree_angle}"
+                baseline="{baseline}"
+                depth="{depth}"
+                pan_angle_deg="{pan_angle_deg}"/>
+
+            <!-- Vertical angle from Y pixel offset -->
+            <YPixelOffsetToAngle
+                vfov="{vfov}"
+                y_pixel_offset="{left_y_offset}"
+                image_half_height="{image_half_height}"
+                y_angle_deg="{y_angle_deg}"/>
+
+            <!-- Compute final 3D convergence point -->
+            <ComputeConvergencePoint
+                robot_pose="{robot_pose}"
+                depth="{depth}"
+                pan_angle_deg="{pan_angle_deg}"
+                y_angle_deg="{y_angle_deg}"
+                a6_rotation_angle="{a6_rotation_angle}"
+                convergence_x="{convergence_x}"
+                convergence_y="{convergence_y}"
+                convergence_z="{convergence_z}"/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

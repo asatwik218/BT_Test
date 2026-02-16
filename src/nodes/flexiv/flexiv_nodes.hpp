@@ -141,77 +141,7 @@ public:
 };
 
 // ============================================================================
-// Node 2: MoveRobot
-// ============================================================================
-/**
- * @brief Sends async Cartesian motion command to robot
- *
- * Ports:
- *   - serial [input]: Robot serial number
- *   - position_mm [input]: Target position [x, y, z] in millimeters
- *   - orientation_deg [input]: Target orientation [roll, pitch, yaw] in degrees (ZYX Euler)
- *   - max_linear_vel [input]: Max linear velocity (m/s), default 0.5
- *   - max_angular_vel [input]: Max angular velocity (rad/s), default 1.0
- *   - max_linear_acc [input]: Max linear acceleration (m/s²), default 2.0
- *   - max_angular_acc [input]: Max angular acceleration (rad/s²), default 5.0
- *
- * Returns SUCCESS after sending command, FAILURE on error
- */
-class MoveRobot : public BT::SyncActionNode {
-public:
-    MoveRobot(const std::string& name, const BT::NodeConfig& config)
-        : BT::SyncActionNode(name, config) {}
-
-    static BT::PortsList providedPorts() {
-        return {
-            BT::InputPort<std::string>("serial", "Robot serial number"),
-            BT::InputPort<std::array<double, 3>>("position_mm", "Target position [x,y,z] in mm"),
-            BT::InputPort<std::array<double, 3>>("orientation_deg", "Target orientation [roll,pitch,yaw] in degrees (ZYX)"),
-            BT::InputPort<double>("max_linear_vel", 0.5, "Max linear velocity (m/s)"),
-            BT::InputPort<double>("max_angular_vel", 1.0, "Max angular velocity (rad/s)"),
-            BT::InputPort<double>("max_linear_acc", 2.0, "Max linear acceleration (m/s²)"),
-            BT::InputPort<double>("max_angular_acc", 5.0, "Max angular acceleration (rad/s²)")
-        };
-    }
-
-    BT::NodeStatus tick() override;
-};
-
-// ============================================================================
-// Node 3: CheckTargetReached
-// ============================================================================
-/**
- * @brief Checks if robot has reached target position and orientation
- *
- * Ports:
- *   - serial [input]: Robot serial number
- *   - target_position_mm [input]: Target position [x, y, z] in millimeters
- *   - target_orientation_deg [input]: Target orientation [roll, pitch, yaw] in degrees (ZYX Euler)
- *   - position_tolerance_mm [input]: Position tolerance in mm, default 1.0
- *   - orientation_tolerance_deg [input]: Orientation tolerance in degrees, default 1.0
- *
- * Returns SUCCESS if within tolerance, FAILURE otherwise
- */
-class CheckTargetReached : public BT::SyncActionNode {
-public:
-    CheckTargetReached(const std::string& name, const BT::NodeConfig& config)
-        : BT::SyncActionNode(name, config) {}
-
-    static BT::PortsList providedPorts() {
-        return {
-            BT::InputPort<std::string>("serial", "Robot serial number"),
-            BT::InputPort<std::array<double, 3>>("target_position_mm", "Target position [x,y,z] in mm"),
-            BT::InputPort<std::array<double, 3>>("target_orientation_deg", "Target orientation [roll,pitch,yaw] in degrees (ZYX)"),
-            BT::InputPort<double>("position_tolerance_mm", 1.0, "Position tolerance (mm)"),
-            BT::InputPort<double>("orientation_tolerance_deg", 1.0, "Orientation tolerance (degrees)")
-        };
-    }
-
-    BT::NodeStatus tick() override;
-};
-
-// ============================================================================
-// Node 4: StopRobot
+// Node 2: StopRobot
 // ============================================================================
 /**
  * @brief Stops robot motion and transitions to IDLE mode
@@ -261,18 +191,47 @@ public:
 };
 
 // ============================================================================
+// MoveRobotAsync — sends motion in onStart, polls target in onRunning
+// ============================================================================
+class MoveRobotAsync : public BT::StatefulActionNode {
+public:
+    MoveRobotAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("serial", "Robot serial number"),
+            BT::InputPort<std::array<double, 3>>("position_mm", "Target position [x,y,z] in mm"),
+            BT::InputPort<std::array<double, 3>>("orientation_deg", "Target orientation [roll,pitch,yaw] in degrees (ZYX)"),
+            BT::InputPort<double>("max_linear_vel", 0.5, "Max linear velocity (m/s)"),
+            BT::InputPort<double>("max_angular_vel", 1.0, "Max angular velocity (rad/s)"),
+            BT::InputPort<double>("max_linear_acc", 2.0, "Max linear acceleration (m/s^2)"),
+            BT::InputPort<double>("max_angular_acc", 5.0, "Max angular acceleration (rad/s^2)"),
+            BT::InputPort<double>("position_tolerance_mm", 2.0, "Position tolerance (mm)"),
+            BT::InputPort<double>("orientation_tolerance_deg", 2.0, "Orientation tolerance (degrees)")
+        };
+    }
+
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    std::string serial_;
+    std::array<double, 3> target_pos_mm_{};
+    std::array<double, 4> target_quat_{};
+    double pos_tol_mm_ = 2.0;
+    double orient_tol_deg_ = 2.0;
+};
+
+// ============================================================================
 // Registration helper
 // ============================================================================
-/**
- * @brief Register all Flexiv nodes with a BehaviorTreeFactory
- * @param factory The factory to register nodes with
- */
 inline void registerFlexivNodes(BT::BehaviorTreeFactory& factory) {
     factory.registerNodeType<ConnectRobot>("ConnectRobot");
-    factory.registerNodeType<MoveRobot>("MoveRobot");
-    factory.registerNodeType<CheckTargetReached>("CheckTargetReached");
     factory.registerNodeType<StopRobot>("StopRobot");
     factory.registerNodeType<DisconnectRobot>("DisconnectRobot");
+    factory.registerNodeType<MoveRobotAsync>("MoveRobotAsync");
 }
 
 } // namespace flexiv_bt
