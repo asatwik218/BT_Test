@@ -63,3 +63,10 @@ target_link_libraries(test_camera PRIVATE
     cynlr::camera
     opencv::opencv
 )
+
+# Stereo camera live view test
+add_executable(test_stereo_view src/test_stereo_view.cpp)
+target_link_libraries(test_stereo_view PRIVATE
+    cynlr::camera
+    opencv::opencv
+)
