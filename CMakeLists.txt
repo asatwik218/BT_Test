@@ -29,8 +29,6 @@ add_executable(${PROJECT_NAME}
     src/nodes/motor/motor_nodes.cpp
     src/nodes/amr/amr_nodes_new.cpp
     src/nodes/vision/vision_nodes.cpp
-    # Async nodes (StatefulActionNode — wait for completion, haltable)
-    src/nodes/amr/amr_nodes_async.cpp
     # Monitoring nodes (fault detection)
     src/nodes/monitoring/monitoring_nodes.cpp
 )

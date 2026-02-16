@@ -459,9 +459,90 @@ public:
 };
 
 // ============================================================================
+// Async BT Nodes (StatefulActionNode — wait for completion, haltable)
+// ============================================================================
+
+class GoToAMRAsync : public BT::StatefulActionNode {
+public:
+    GoToAMRAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("ip", "AMR IP address"),
+            BT::InputPort<std::string>("amr_type", "SEER", "AMR type"),
+            BT::InputPort<std::string>("source_id", "SELF_POSITION", "Source position ID"),
+            BT::InputPort<std::string>("dest_id", "Destination position ID"),
+            BT::InputPort<std::string>("movement_mode", "forward", "Movement mode"),
+            BT::InputPort<float>("arrival_angle", 0.0f, "Arrival angle (rad)"),
+            BT::InputPort<float>("max_vel", 0.0f, "Max velocity (m/s)"),
+            BT::InputPort<float>("max_ang_vel", 0.0f, "Max angular velocity (rad/s)"),
+            BT::InputPort<float>("max_acc", 0.0f, "Max acceleration (m/s^2)"),
+            BT::InputPort<float>("max_ang_acc", 0.0f, "Max angular acceleration (rad/s^2)")
+        };
+    }
+
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    std::string ip_;
+    AMRType amr_type_ = AMRType::SEER;
+};
+
+class TranslateAMRAsync : public BT::StatefulActionNode {
+public:
+    TranslateAMRAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("ip", "AMR IP address"),
+            BT::InputPort<std::string>("amr_type", "SEER", "AMR type"),
+            BT::InputPort<float>("distance", "Translation distance (m)"),
+            BT::InputPort<float>("vel_x", 0.0f, "Velocity X (m/s)"),
+            BT::InputPort<float>("vel_y", 0.0f, "Velocity Y (m/s)")
+        };
+    }
+
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    std::string ip_;
+    AMRType amr_type_ = AMRType::SEER;
+};
+
+class RotateAMRAsync : public BT::StatefulActionNode {
+public:
+    RotateAMRAsync(const std::string& name, const BT::NodeConfig& config)
+        : BT::StatefulActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("ip", "AMR IP address"),
+            BT::InputPort<std::string>("amr_type", "SEER", "AMR type"),
+            BT::InputPort<float>("angle", "Rotation angle (rad)"),
+            BT::InputPort<float>("ang_vel", 0.0f, "Angular velocity (rad/s)")
+        };
+    }
+
+    BT::NodeStatus onStart() override;
+    BT::NodeStatus onRunning() override;
+    void onHalted() override;
+
+private:
+    std::string ip_;
+    AMRType amr_type_ = AMRType::SEER;
+};
+
+// ============================================================================
 // Registration
 // ============================================================================
 inline void registerAMRNodes(BT::BehaviorTreeFactory& factory) {
+    // Sync nodes
     factory.registerNodeType<ConnectAMR>("ConnectAMR");
     factory.registerNodeType<DisconnectAMR>("DisconnectAMR");
     factory.registerNodeType<RelocateAMR>("RelocateAMR");
@@ -478,6 +559,10 @@ inline void registerAMRNodes(BT::BehaviorTreeFactory& factory) {
     factory.registerNodeType<StopContinuousTelemetryAMR>("StopContinuousTelemetryAMR");
     factory.registerNodeType<LiftAMR>("LiftAMR");
     factory.registerNodeType<StopLiftAMR>("StopLiftAMR");
+    // Async nodes
+    factory.registerNodeType<GoToAMRAsync>("GoToAMRAsync");
+    factory.registerNodeType<TranslateAMRAsync>("TranslateAMRAsync");
+    factory.registerNodeType<RotateAMRAsync>("RotateAMRAsync");
 }
 
 } // namespace amr_bt

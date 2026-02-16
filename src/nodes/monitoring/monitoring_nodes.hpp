@@ -1,8 +1,10 @@
 #pragma once
 
 #include "behaviortree_cpp/bt_factory.h"
-#include "nodes/motor/motor_nodes.hpp"
+// Include flexiv BEFORE motor/amr headers, which pull in <Windows.h>.
+// Windows.h defines an ERROR macro that conflicts with flexiv's RobotEvent::Level::ERROR enum.
 #include "nodes/flexiv/flexiv_nodes.hpp"
+#include "nodes/motor/motor_nodes.hpp"
 #include "nodes/amr/amr_nodes_new.hpp"
 
 #include <iostream>

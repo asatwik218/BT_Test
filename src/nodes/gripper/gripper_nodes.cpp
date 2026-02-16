@@ -133,7 +133,7 @@ BT::NodeStatus OpenGripperAsync::onRunning() {
 
         auto status = gripper->getStatus();
         if (status.has_value()) {
-            if (!status->is_moving) {
+            if (status->state != cynlr::gripper::GripperState::IN_MOTION) {
                 std::cout << "[OpenGripperAsync] Gripper opened successfully" << std::endl;
                 return BT::NodeStatus::SUCCESS;
             }
@@ -201,7 +201,7 @@ BT::NodeStatus CloseGripperAsync::onRunning() {
 
         auto status = gripper->getStatus();
         if (status.has_value()) {
-            if (!status->is_moving) {
+            if (status->state != cynlr::gripper::GripperState::IN_MOTION) {
                 std::cout << "[CloseGripperAsync] Gripper closed successfully" << std::endl;
                 return BT::NodeStatus::SUCCESS;
             }

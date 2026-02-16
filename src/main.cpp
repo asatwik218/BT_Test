@@ -4,7 +4,6 @@
 #include "nodes/camera/camera_nodes.hpp"
 #include "nodes/motor/motor_nodes.hpp"
 #include "nodes/amr/amr_nodes_new.hpp"
-#include "nodes/amr/amr_nodes_async.hpp"
 #include "nodes/vision/vision_nodes.hpp"
 #include "nodes/monitoring/monitoring_nodes.hpp"
 #include "core/emergency_stop.hpp"
@@ -25,7 +24,6 @@ int main() {
         camera_bt::registerCameraNodes(factory);
         motor_bt::registerMotorNodes(factory);
         amr_bt::registerAMRNodes(factory);
-        amr_bt::registerAMRNodesAsync(factory);
         vision_bt::registerVisionNodes(factory);
         monitoring_bt::registerMonitoringNodes(factory);
 
