@@ -13,19 +13,25 @@
     <Sequence>
 
       <!-- Define camera names -->
-      <Script code="left_cam  := 'FLIR-1E100157992A-0157992A';
-                    right_cam := 'FLIR-1E100157E98F-0157E98F'"/>
+      <Script code="left_cam  := 'FLIR-1E1001647846-01647846';
+                    right_cam := 'FLIR-1E1001644882-01644882'"/>
 
       <!-- ========== SETUP: Cameras ========== -->
       <ConnectCamera camera_name="{left_cam}"/>
       <SetPixelFormat camera_name="{left_cam}" pixel_format="MONO8"/>
       <SetBinning     camera_name="{left_cam}" binning_x="4" binning_y="4"/>
       <SetFrameRate   camera_name="{left_cam}" frame_rate="60"/>
+      <EnableLensPower camera_name="{left_cam}" enable="true"/>
+      <SetupLensSerial camera_name="{left_cam}"/>
+      <SetLensFocus    camera_name="{left_cam}" voltage="40"/>
 
       <ConnectCamera camera_name="{right_cam}"/>
       <SetPixelFormat camera_name="{right_cam}" pixel_format="MONO8"/>
       <SetBinning     camera_name="{right_cam}" binning_x="4" binning_y="4"/>
       <SetFrameRate   camera_name="{right_cam}" frame_rate="60"/>
+      <EnableLensPower camera_name="{right_cam}" enable="true"/>
+      <SetupLensSerial camera_name="{right_cam}"/>
+      <SetLensFocus    camera_name="{right_cam}" voltage="40"/>
 
       <StartAcquisition camera_name="{left_cam}"/>
       <StartAcquisition camera_name="{right_cam}"/>
@@ -172,6 +178,8 @@
       <DisconnectMotors/>
       <StopAcquisition camera_name="{left_cam}"/>
       <StopAcquisition camera_name="{right_cam}"/>
+      <EnableLensPower camera_name="{left_cam}" enable="false"/>
+      <EnableLensPower camera_name="{right_cam}" enable="false"/>
       <DisconnectCamera camera_name="{left_cam}"/>
       <DisconnectCamera camera_name="{right_cam}"/>
 

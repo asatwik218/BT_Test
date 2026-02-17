@@ -343,6 +343,62 @@ public:
 };
 
 // ============================================================================
+// Node 13: EnableLensPower
+// ============================================================================
+class EnableLensPower : public BT::SyncActionNode {
+public:
+    EnableLensPower(const std::string& name, const BT::NodeConfig& config)
+        : BT::SyncActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("camera_name", "Camera identifier"),
+            BT::InputPort<bool>("enable", true, "Enable (true) or disable (false) 3.3V lens power")
+        };
+    }
+
+    BT::NodeStatus tick() override;
+};
+
+// ============================================================================
+// Node 14: SetLensFocus
+// ============================================================================
+class SetLensFocus : public BT::SyncActionNode {
+public:
+    SetLensFocus(const std::string& name, const BT::NodeConfig& config)
+        : BT::SyncActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("camera_name", "Camera identifier"),
+            BT::InputPort<double>("voltage", 47.0, "Focus voltage (24.0 - 70.0V)")
+        };
+    }
+
+    BT::NodeStatus tick() override;
+};
+
+// ============================================================================
+// Node 15: SetupLensSerial
+// ============================================================================
+class SetupLensSerial : public BT::SyncActionNode {
+public:
+    SetupLensSerial(const std::string& name, const BT::NodeConfig& config)
+        : BT::SyncActionNode(name, config) {}
+
+    static BT::PortsList providedPorts() {
+        return {
+            BT::InputPort<std::string>("camera_name", "Camera identifier"),
+            BT::InputPort<std::string>("line", "Line1", "GPIO line selector"),
+            BT::InputPort<std::string>("source", "SerialPort0_Tx", "Line source"),
+            BT::InputPort<std::string>("baud_rate", "Baud57600", "Serial baud rate")
+        };
+    }
+
+    BT::NodeStatus tick() override;
+};
+
+// ============================================================================
 // Registration helper
 // ============================================================================
 inline void registerCameraNodes(BT::BehaviorTreeFactory& factory) {
@@ -358,6 +414,9 @@ inline void registerCameraNodes(BT::BehaviorTreeFactory& factory) {
     factory.registerNodeType<SetAutoExposure>("SetAutoExposure");
     factory.registerNodeType<AcquireFrame>("AcquireFrame");
     factory.registerNodeType<ReleaseFrame>("ReleaseFrame");
+    factory.registerNodeType<EnableLensPower>("EnableLensPower");
+    factory.registerNodeType<SetLensFocus>("SetLensFocus");
+    factory.registerNodeType<SetupLensSerial>("SetupLensSerial");
 }
 
 } // namespace camera_bt

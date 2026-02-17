@@ -396,4 +396,99 @@ BT::NodeStatus ReleaseFrame::tick() {
     return BT::NodeStatus::SUCCESS;
 }
 
+// ============================================================================
+// EnableLensPower Implementation
+// ============================================================================
+
+BT::NodeStatus EnableLensPower::tick() {
+    auto camera_name = getInput<std::string>("camera_name");
+    if (!camera_name) {
+        std::cerr << "[EnableLensPower] Missing 'camera_name'" << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    bool enable = getInput<bool>("enable").value_or(true);
+
+    auto cam = CameraManager::instance().get(camera_name.value());
+    if (!cam) {
+        std::cerr << "[EnableLensPower] Camera not found: " << camera_name.value() << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    auto err = cam->enableLensPower(enable);
+    if (err.has_value()) {
+        std::cerr << "[EnableLensPower] Error: " << err->message << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    std::cout << "[EnableLensPower] 3.3V " << (enable ? "enabled" : "disabled")
+              << " on " << camera_name.value() << std::endl;
+    return BT::NodeStatus::SUCCESS;
+}
+
+// ============================================================================
+// SetLensFocus Implementation
+// ============================================================================
+
+BT::NodeStatus SetLensFocus::tick() {
+    auto camera_name = getInput<std::string>("camera_name");
+    auto voltage = getInput<double>("voltage");
+
+    if (!camera_name) {
+        std::cerr << "[SetLensFocus] Missing 'camera_name'" << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+    if (!voltage) {
+        std::cerr << "[SetLensFocus] Missing 'voltage'" << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    auto cam = CameraManager::instance().get(camera_name.value());
+    if (!cam) {
+        std::cerr << "[SetLensFocus] Camera not found: " << camera_name.value() << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    auto err = cam->setLensFocus(voltage.value());
+    if (err.has_value()) {
+        std::cerr << "[SetLensFocus] Error: " << err->message << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    std::cout << "[SetLensFocus] Focus set to " << voltage.value() << "V on "
+              << camera_name.value() << std::endl;
+    return BT::NodeStatus::SUCCESS;
+}
+
+// ============================================================================
+// SetupLensSerial Implementation
+// ============================================================================
+
+BT::NodeStatus SetupLensSerial::tick() {
+    auto camera_name = getInput<std::string>("camera_name");
+    if (!camera_name) {
+        std::cerr << "[SetupLensSerial] Missing 'camera_name'" << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    std::string line = getInput<std::string>("line").value_or("Line1");
+    std::string source = getInput<std::string>("source").value_or("SerialPort0_Tx");
+    std::string baud = getInput<std::string>("baud_rate").value_or("Baud57600");
+
+    auto cam = CameraManager::instance().get(camera_name.value());
+    if (!cam) {
+        std::cerr << "[SetupLensSerial] Camera not found: " << camera_name.value() << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    auto err = cam->setupLensSerial(line.c_str(), source.c_str(), baud.c_str());
+    if (err.has_value()) {
+        std::cerr << "[SetupLensSerial] Warning: " << err->message
+                  << " (non-fatal, focus may still work)" << std::endl;
+    }
+
+    std::cout << "[SetupLensSerial] Serial configured on " << camera_name.value() << std::endl;
+    return BT::NodeStatus::SUCCESS;
+}
+
 } // namespace camera_bt
