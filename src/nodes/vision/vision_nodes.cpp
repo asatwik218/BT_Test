@@ -7,6 +7,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <algorithm>
 #include <cmath>
+#include <set>
 #include <sstream>
 
 #ifndef M_PI
@@ -261,8 +262,19 @@ BT::NodeStatus DetectAruco::tick() {
     detector.detectMarkers(gray, result.corners, result.ids, result.rejected);
 
     int count = static_cast<int>(result.ids.size());
-    std::cout << "[DetectAruco] Detected " << count << " markers in '"
-              << frame_name.value() << "'" << std::endl;
+    int rejected_count = static_cast<int>(result.rejected.size());
+    std::cout << "[DetectAruco] Detected " << count << " markers, "
+              << rejected_count << " rejected candidates in '"
+              << frame_name.value() << "' (" << gray.cols << "x" << gray.rows << ")" << std::endl;
+
+    // Save debug frame on first call for each frame_name
+    static std::set<std::string> saved_debug;
+    if (saved_debug.find(frame_name.value()) == saved_debug.end()) {
+        saved_debug.insert(frame_name.value());
+        std::string debug_path = "debug_aruco_" + frame_name.value() + ".png";
+        cv::imwrite(debug_path, gray);
+        std::cout << "[DetectAruco] Saved debug frame: " << debug_path << std::endl;
+    }
 
     // Build comma-separated ID list
     std::ostringstream oss;
