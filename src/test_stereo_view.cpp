@@ -73,8 +73,10 @@ int main() {
     cv::namedWindow("Right Camera", cv::WINDOW_AUTOSIZE);
 
     printf("\n=== Controls ===\n");
-    printf("  UP/DOWN arrow : Adjust focus (+/- %.1fV)\n", focus_step);
-    printf("  Page Up/Down  : Adjust focus (+/- 5.0V)\n");
+    printf("  w / UP arrow  : Focus up   (+step)\n");
+    printf("  x / DOWN arrow: Focus down (-step)\n");
+    printf("  e / Page Up   : Focus up   (+5.0V)\n");
+    printf("  z / Page Down : Focus down (-5.0V)\n");
     printf("  +/-           : Change step size\n");
     printf("  s             : Save snapshots\n");
     printf("  q / ESC       : Quit\n");
@@ -121,25 +123,25 @@ int main() {
         cv::imshow("Left Camera", left_display);
         cv::imshow("Right Camera", right_display);
 
-        int key = cv::waitKey(1);
+        int key = cv::waitKeyEx(1);
         if (key == 'q' || key == 27) break;
 
         bool focus_changed = false;
 
         switch (key) {
-            case 2490368: // UP arrow
+            case 'w': case 'W': case 2490368: // w or UP arrow
                 focus_voltage = std::min(focus_voltage + focus_step, 70.0);
                 focus_changed = true;
                 break;
-            case 2621440: // DOWN arrow
+            case 'x': case 'X': case 2621440: // x or DOWN arrow
                 focus_voltage = std::max(focus_voltage - focus_step, 24.0);
                 focus_changed = true;
                 break;
-            case 2162688: // Page Up
+            case 'e': case 'E': case 2162688: // e or Page Up
                 focus_voltage = std::min(focus_voltage + 5.0, 70.0);
                 focus_changed = true;
                 break;
-            case 2228224: // Page Down
+            case 'z': case 'Z': case 2228224: // z or Page Down
                 focus_voltage = std::max(focus_voltage - 5.0, 24.0);
                 focus_changed = true;
                 break;
@@ -158,10 +160,18 @@ int main() {
                 break;
         }
 
+        if (key != -1 && !focus_changed) {
+            printf("Key pressed: %d (0x%X)\n", key, key);
+        }
+
         if (focus_changed) {
             printf("Focus: %.1fV\n", focus_voltage);
-            left_cam.setLensFocus(focus_voltage);
-            right_cam.setLensFocus(focus_voltage);
+            auto lerr = left_cam.setLensFocus(focus_voltage);
+            if (lerr.has_value())
+                printf("  Left setLensFocus FAILED: %s\n", lerr->message);
+            auto rerr = right_cam.setLensFocus(focus_voltage);
+            if (rerr.has_value())
+                printf("  Right setLensFocus FAILED: %s\n", rerr->message);
         }
     }
 
