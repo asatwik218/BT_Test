@@ -5,6 +5,7 @@
 #include <Eigen/Geometry>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <algorithm>
 #include <cmath>
 #include <sstream>
 
@@ -225,8 +226,10 @@ BT::NodeStatus DetectAruco::tick() {
         return BT::NodeStatus::FAILURE;
     }
 
-    // Look up dictionary
-    auto dict_it = aruco_dict_map.find(dict_name.value());
+    // Look up dictionary (case-insensitive: convert to uppercase)
+    std::string dict_key = dict_name.value();
+    std::transform(dict_key.begin(), dict_key.end(), dict_key.begin(), ::toupper);
+    auto dict_it = aruco_dict_map.find(dict_key);
     if (dict_it == aruco_dict_map.end()) {
         std::cerr << "[DetectAruco] Unknown dictionary: " << dict_name.value() << std::endl;
         return BT::NodeStatus::FAILURE;
@@ -494,12 +497,22 @@ BT::NodeStatus GetArucoCenterOffset::tick() {
     const auto& det = det_opt.value();
     int target_id = marker_id.value();
 
-    // Find the marker with the requested ID
+    if (det.ids.empty()) {
+        std::cerr << "[GetArucoCenterOffset] No markers detected in " << frame_name.value() << std::endl;
+        return BT::NodeStatus::FAILURE;
+    }
+
+    // Find the marker: -1 means use the first detected marker
     int idx = -1;
-    for (size_t i = 0; i < det.ids.size(); ++i) {
-        if (det.ids[i] == target_id) {
-            idx = static_cast<int>(i);
-            break;
+    if (target_id < 0) {
+        idx = 0;
+        target_id = det.ids[0];
+    } else {
+        for (size_t i = 0; i < det.ids.size(); ++i) {
+            if (det.ids[i] == target_id) {
+                idx = static_cast<int>(i);
+                break;
+            }
         }
     }
 

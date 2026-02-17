@@ -63,11 +63,11 @@
           <DetectAruco frame_name="right" dictionary="DICT_4X4_50"
                        marker_count="{right_marker_count}" detected_ids="{right_ids}"/>
 
-          <!-- Get pixel offsets from center for marker ID 0 -->
-          <GetArucoCenterOffset frame_name="left" marker_id="0"
+          <!-- Get pixel offsets from center (first detected marker) -->
+          <GetArucoCenterOffset frame_name="left" marker_id="-1"
                                 image_width="{left_width}" image_height="{left_height}"
                                 x_offset="{left_x_offset}" y_offset="{left_y_offset}"/>
-          <GetArucoCenterOffset frame_name="right" marker_id="0"
+          <GetArucoCenterOffset frame_name="right" marker_id="-1"
                                 image_width="{right_width}" image_height="{right_height}"
                                 x_offset="{right_x_offset}" y_offset="{right_y_offset}"/>
 

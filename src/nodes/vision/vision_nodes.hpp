@@ -373,7 +373,7 @@ public:
     static BT::PortsList providedPorts() {
         return {
             BT::InputPort<std::string>("frame_name", "VisionManager key (\"left\" or \"right\")"),
-            BT::InputPort<int>("marker_id", 0, "ArUco marker ID to look for"),
+            BT::InputPort<int>("marker_id", -1, "ArUco marker ID to look for (-1 = first detected)"),
             BT::InputPort<int>("image_width", "Frame width in pixels"),
             BT::InputPort<int>("image_height", "Frame height in pixels"),
             BT::OutputPort<double>("x_offset", "Horizontal pixel offset from center"),
