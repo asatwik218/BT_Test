@@ -47,10 +47,14 @@ int main() {
     abortOnError(left_cam.enableLensPower(true));
     abortOnError(right_cam.enableLensPower(true));
 
-    // Setup lens serial communication
+    // Setup lens serial communication (may not be available on USB3 cameras — non-fatal)
     printf("Setting up lens serial...\n");
-    abortOnError(left_cam.setupLensSerial());
-    abortOnError(right_cam.setupLensSerial());
+    auto left_serial_err = left_cam.setupLensSerial();
+    if (left_serial_err.has_value())
+        printf("  Left serial setup skipped: %s (focus may still work via FileAccess)\n", left_serial_err->message);
+    auto right_serial_err = right_cam.setupLensSerial();
+    if (right_serial_err.has_value())
+        printf("  Right serial setup skipped: %s (focus may still work via FileAccess)\n", right_serial_err->message);
 
     // Initial focus voltage (middle of 24-70V range)
     double focus_voltage = 47.0;
