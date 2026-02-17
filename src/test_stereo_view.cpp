@@ -49,10 +49,10 @@ int main() {
 
     // Setup lens serial communication (may not be available on USB3 cameras — non-fatal)
     printf("Setting up lens serial...\n");
-    auto left_serial_err = left_cam.setupLensSerial();
+    auto left_serial_err = left_cam.setupLensSerial("Line1", "SerialPort0_Tx", "Baud57600");
     if (left_serial_err.has_value())
         printf("  Left serial setup skipped: %s (focus may still work via FileAccess)\n", left_serial_err->message);
-    auto right_serial_err = right_cam.setupLensSerial();
+    auto right_serial_err = right_cam.setupLensSerial("Line1", "SerialPort0_Tx", "Baud57600");
     if (right_serial_err.has_value())
         printf("  Right serial setup skipped: %s (focus may still work via FileAccess)\n", right_serial_err->message);
 

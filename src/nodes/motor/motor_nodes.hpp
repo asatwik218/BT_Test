@@ -303,8 +303,8 @@ public:
     static BT::PortsList providedPorts() {
         return {
             BT::InputPort<int>("motor_index", "Motor index (0-based)"),
-            BT::OutputPort<int32_t>("actual_position", "Current actual position"),
-            BT::OutputPort<int32_t>("velocity", "Current velocity"),
+            BT::OutputPort<double>("actual_position", "Current actual position"),
+            BT::OutputPort<double>("velocity", "Current velocity"),
             BT::OutputPort<uint16_t>("status_word", "Status word"),
             BT::OutputPort<uint16_t>("error_code", "Error code")
         };
@@ -385,12 +385,12 @@ public:
     static BT::PortsList providedPorts() {
         return {
             BT::InputPort<int>("motor_index_1", "First motor index"),
-            BT::InputPort<int32_t>("target_position_1", "First motor target position"),
+            BT::InputPort<double>("target_position_1", "First motor target position"),
             BT::InputPort<uint32_t>("profile_acceleration_1", 1000, "First motor acceleration"),
             BT::InputPort<uint32_t>("profile_deceleration_1", 1000, "First motor deceleration"),
             BT::InputPort<uint32_t>("profile_velocity_1", 20, "First motor velocity"),
             BT::InputPort<int>("motor_index_2", "Second motor index"),
-            BT::InputPort<int32_t>("target_position_2", "Second motor target position"),
+            BT::InputPort<double>("target_position_2", "Second motor target position"),
             BT::InputPort<uint32_t>("profile_acceleration_2", 1000, "Second motor acceleration"),
             BT::InputPort<uint32_t>("profile_deceleration_2", 1000, "Second motor deceleration"),
             BT::InputPort<uint32_t>("profile_velocity_2", 20, "Second motor velocity"),

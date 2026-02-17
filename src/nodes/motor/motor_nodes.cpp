@@ -121,8 +121,8 @@ BT::NodeStatus GetMotorStatus::tick() {
         return BT::NodeStatus::FAILURE;
     }
 
-    setOutput("actual_position", output.actualPosition);
-    setOutput("velocity", output.velocityActualValue);
+    setOutput("actual_position", static_cast<double>(output.actualPosition));
+    setOutput("velocity", static_cast<double>(output.velocityActualValue));
     setOutput("status_word", output.statusWord);
     setOutput("error_code", output.errorCode);
 
@@ -266,9 +266,9 @@ void SetMotorAsync::onHalted() {
 
 BT::NodeStatus SetMotorsAsync::onStart() {
     auto i1 = getInput<int>("motor_index_1");
-    auto p1 = getInput<int32_t>("target_position_1");
+    auto p1 = getInput<double>("target_position_1");
     auto i2 = getInput<int>("motor_index_2");
-    auto p2 = getInput<int32_t>("target_position_2");
+    auto p2 = getInput<double>("target_position_2");
 
     if (!i1 || !p1 || !i2 || !p2) {
         std::cerr << "[SetMotorsAsync] Missing required inputs" << std::endl;
@@ -284,7 +284,7 @@ BT::NodeStatus SetMotorsAsync::onStart() {
 
     idx1_ = i1.value(); idx2_ = i2.value();
     motor1_ = *m1; motor2_ = *m2;
-    target1_ = p1.value(); target2_ = p2.value();
+    target1_ = static_cast<int32_t>(p1.value()); target2_ = static_cast<int32_t>(p2.value());
     tolerance_ = getInput<int32_t>("position_tolerance").value_or(100);
 
     StMotorInput input1{};
