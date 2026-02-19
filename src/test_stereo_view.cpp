@@ -8,8 +8,11 @@ using namespace cynlr::camera;
 int main() {
     printf("Stereo Camera Live View with Focus Control\n");
 
-    const char* left_name  = "FLIR-1E1001647846-01647846";
-    const char* right_name = "FLIR-1E1001644882-01644882";
+  //  const char* left_name  = "FLIR-1E1001647846-01647846";
+    //const char* right_name = "FLIR-1E1001644882-01644882";
+
+    const char* left_name  = "FLIR-1E100157992A-0157992A";
+    const char* right_name = "FLIR-1E100157E98F-0157E98F";
 
     // Create backends
     auto left_backend = AravisBackend::create(left_name);

@@ -8,6 +8,7 @@
 #include "nodes/monitoring/monitoring_nodes.hpp"
 #include "core/emergency_stop.hpp"
 
+#include <opencv2/highgui.hpp>
 #include <thread>
 #include <chrono>
 
@@ -33,7 +34,11 @@ int main() {
         // Start emergency stop monitoring (ESC key)
         core::EmergencyStopManager::instance().start();
 
-        // Custom tick loop with emergency stop check
+        // Create display windows
+        cv::namedWindow("Left Camera", cv::WINDOW_AUTOSIZE);
+        cv::namedWindow("Right Camera", cv::WINDOW_AUTOSIZE);
+
+        // Custom tick loop with emergency stop check and live display
         NodeStatus status = NodeStatus::RUNNING;
         while (status == NodeStatus::RUNNING) {
             if (core::EmergencyStopManager::instance().isHaltRequested()) {
@@ -42,8 +47,20 @@ int main() {
                 break;
             }
             status = tree.tickOnce();
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+            // Display frames from VisionManager if available
+            auto left_frame = vision_bt::VisionManager::instance().getFrame("left");
+            if (left_frame.has_value())
+                cv::imshow("Left Camera", left_frame.value());
+
+            auto right_frame = vision_bt::VisionManager::instance().getFrame("right");
+            if (right_frame.has_value())
+                cv::imshow("Right Camera", right_frame.value());
+
+            cv::waitKey(1);
         }
+
+        cv::destroyAllWindows();
 
         core::EmergencyStopManager::instance().stop();
 
