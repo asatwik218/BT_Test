@@ -2,28 +2,49 @@
 #include "Camera.hpp"
 #include "AravisBackend.hpp"
 #include <cstdio>
+#include <string>
+#include <vector>
+#include <thread>
+#include <chrono>
 
 using namespace cynlr::camera;
 
 int main() {
     printf("Stereo Camera Live View with Focus Control\n");
 
-  //  const char* left_name  = "FLIR-1E1001647846-01647846";
-    //const char* right_name = "FLIR-1E1001644882-01644882";
-
-    const char* left_name  = "FLIR-1E100157992A-0157992A";
-    const char* right_name = "FLIR-1E100157E98F-0157E98F";
-
-    // Create backends
-    auto left_backend = AravisBackend::create(left_name);
-    if (!left_backend) {
-        printf("Failed to create left camera backend: %s\n", left_name);
+    // Enumerate all available cameras
+    printf("\nScanning for cameras...\n");
+    auto devices = AravisBackend::listCameras();
+    if (devices.empty()) {
+        printf("ERROR: No cameras found!\n");
         return -1;
     }
 
-    auto right_backend = AravisBackend::create(right_name);
+    printf("Found %zu camera(s):\n", devices.size());
+    for (size_t i = 0; i < devices.size(); i++) {
+        printf("  [%zu] %s\n", i, devices[i].c_str());
+    }
+
+    if (devices.size() < 2) {
+        printf("ERROR: Need at least 2 cameras for stereo view, found %zu\n", devices.size());
+        return -1;
+    }
+
+    // Use first two cameras as left and right
+    std::string left_name  = devices[0];
+    std::string right_name = devices[1];
+    printf("\nUsing:\n  Left:  %s\n  Right: %s\n\n", left_name.c_str(), right_name.c_str());
+
+    // Create backends
+    auto left_backend = AravisBackend::create(left_name.c_str());
+    if (!left_backend) {
+        printf("Failed to create left camera backend: %s\n", left_name.c_str());
+        return -1;
+    }
+
+    auto right_backend = AravisBackend::create(right_name.c_str());
     if (!right_backend) {
-        printf("Failed to create right camera backend: %s\n", right_name);
+        printf("Failed to create right camera backend: %s\n", right_name.c_str());
         return -1;
     }
 
@@ -72,6 +93,9 @@ int main() {
     abortOnError(left_cam.startAcquisition());
     abortOnError(right_cam.startAcquisition());
 
+    // Allow buffers to fill
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
     cv::namedWindow("Left Camera", cv::WINDOW_AUTOSIZE);
     cv::namedWindow("Right Camera", cv::WINDOW_AUTOSIZE);
 
@@ -95,11 +119,11 @@ int main() {
         if (right_borrowed) { right_cam.releaseFrame(right_frame); right_borrowed = false; }
 
         // Borrow new frames
-        auto left_err = left_cam.borrowNewestFrame(left_frame);
+        auto left_err = left_cam.borrowOldestFrame(left_frame);
         if (left_err.has_value()) continue;
         left_borrowed = true;
 
-        auto right_err = right_cam.borrowNewestFrame(right_frame);
+        auto right_err = right_cam.borrowOldestFrame(right_frame);
         if (right_err.has_value()) continue;
         right_borrowed = true;
 
