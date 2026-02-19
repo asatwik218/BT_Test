@@ -389,8 +389,6 @@ public:
     static BT::PortsList providedPorts() {
         return {
             BT::InputPort<std::string>("camera_name", "Camera identifier"),
-            BT::InputPort<std::string>("line", "Line1", "GPIO line selector"),
-            BT::InputPort<std::string>("source", "SerialPort0_Tx", "Line source"),
             BT::InputPort<std::string>("baud_rate", "Baud57600", "Serial baud rate")
         };
     }

@@ -471,8 +471,6 @@ BT::NodeStatus SetupLensSerial::tick() {
         return BT::NodeStatus::FAILURE;
     }
 
-    std::string line = getInput<std::string>("line").value_or("Line1");
-    std::string source = getInput<std::string>("source").value_or("SerialPort0_Tx");
     std::string baud = getInput<std::string>("baud_rate").value_or("Baud57600");
 
     auto cam = CameraManager::instance().get(camera_name.value());
@@ -481,7 +479,7 @@ BT::NodeStatus SetupLensSerial::tick() {
         return BT::NodeStatus::FAILURE;
     }
 
-    auto err = cam->setupLensSerial(line.c_str(), source.c_str(), baud.c_str());
+    auto err = cam->setupLensSerial(baud.c_str());
     if (err.has_value()) {
         std::cerr << "[SetupLensSerial] Warning: " << err->message
                   << " (non-fatal, focus may still work)" << std::endl;
